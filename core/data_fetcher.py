@@ -35,12 +35,20 @@ from loguru import logger
 
 # MT5 is imported lazily so the rest of the codebase can be tested without
 # a running MT5 terminal.
+# On Linux, mt5linux provides the same API via a Wine/Windows-Python bridge.
 try:
     import MetaTrader5 as mt5
     MT5_AVAILABLE = True
+    MT5_BACKEND = "native"
 except ImportError:
-    mt5 = None          # type: ignore
-    MT5_AVAILABLE = False
+    try:
+        from mt5linux import MetaTrader5 as mt5  # type: ignore
+        MT5_AVAILABLE = True
+        MT5_BACKEND = "wine"
+    except ImportError:
+        mt5 = None          # type: ignore
+        MT5_AVAILABLE = False
+        MT5_BACKEND = None
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -19,7 +19,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import yaml
@@ -30,7 +30,7 @@ from loguru import logger
 from backtest.engine import BacktestConfig, BacktestEngine
 from backtest.report import BacktestReport
 from core.candle_buffer import CandleBuffer
-from core.data_fetcher import MT5Config, MT5DataFetcher
+from core.data_fetcher import MT5_AVAILABLE, MT5Config, MT5DataFetcher
 from core.indicator import IchimokuConfig
 from core.signal_detector import DetectorConfig, SignalDetector
 
@@ -73,6 +73,45 @@ def parse_args():
     parser.add_argument("--dry-run", action="store_true", help="Don't save CSV output")
     parser.add_argument("--config",  default="config.yaml")
     return parser.parse_args()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Synthetic data fallback (Linux / no MT5)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def make_synthetic_candles(
+    n: int,
+    symbol: str,
+    from_dt: datetime,
+    timeframe: str = "H1",
+) -> "pd.DataFrame":
+    """Random-walk OHLC DataFrame starting at from_dt, n candles long."""
+    import numpy as np
+    import pandas as pd
+
+    _BASE = {"EURUSD": 1.0850, "GBPUSD": 1.2650, "USDJPY": 149.50}
+    base = _BASE.get(symbol.upper(), 1.0)
+
+    tf_hours = {"M1": 1/60, "M5": 5/60, "M15": 15/60, "M30": 0.5,
+                "H1": 1.0, "H4": 4.0, "D1": 24.0}.get(timeframe.upper(), 1.0)
+
+    rng = np.random.default_rng(hash(symbol) % (2 ** 32))
+    changes = rng.normal(0, base * 0.0003, n)
+    closes  = base + np.cumsum(changes)
+    closes  = np.maximum(closes, base * 0.4)
+    opens   = np.concatenate([[base], closes[:-1]])
+    spreads = np.abs(rng.normal(0, base * 0.0008, n))
+    highs   = np.maximum(opens, closes) + spreads * np.abs(rng.normal(1, 0.3, n))
+    lows    = np.minimum(opens, closes) - spreads * np.abs(rng.normal(1, 0.3, n))
+    lows    = np.maximum(lows, base * 0.4)
+
+    td = timedelta(hours=tf_hours)
+    timestamps = [from_dt + td * i for i in range(n)]
+
+    return pd.DataFrame(
+        {"open": opens, "high": highs, "low": lows, "close": closes},
+        index=pd.DatetimeIndex(timestamps, name="time", tz="UTC"),
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -141,33 +180,47 @@ def main():
         logger.error("No pairs configured or found.  Check config.yaml.")
         sys.exit(1)
 
-    # ── connect to MT5 ────────────────────────────────────────────────────────
-    broker_cfg = config.get("broker", {}).get("mt5", {})
-    mt5_config = MT5Config(
-        login    = broker_cfg.get("login", 0) or 0,
-        server   = broker_cfg.get("server", "") or "",
-        password = broker_cfg.get("password", "") or "",
-    )
-
-    fetcher = MT5DataFetcher(mt5_config)
-    fetcher.connect()
+    # ── connect to MT5 (skipped on Linux where MT5 is unavailable) ───────────
+    fetcher = None
+    if MT5_AVAILABLE:
+        broker_cfg = config.get("broker", {}).get("mt5", {})
+        mt5_config = MT5Config(
+            login    = broker_cfg.get("login", 0) or 0,
+            server   = broker_cfg.get("server", "") or "",
+            password = broker_cfg.get("password", "") or "",
+        )
+        fetcher = MT5DataFetcher(mt5_config)
+        fetcher.connect()
+    else:
+        logger.warning(
+            "MT5 not available on this platform – using synthetic candle data."
+        )
 
     # ── run backtests ─────────────────────────────────────────────────────────
     engine  = BacktestEngine(backtest_cfg)
     report  = BacktestReport()
+    candle_count = bt_cfg_raw.get("candle_count", 5000)
 
     try:
         for pair_entry in pairs_cfg:
-            symbol   = pair_entry["symbol"]
+            symbol     = pair_entry["symbol"]
             timeframes = pair_entry["timeframes"]
-            enabled  = set(pair_entry.get("enabled_signals", []))
+            enabled    = set(pair_entry.get("enabled_signals", []))
 
             for tf in timeframes:
-                logger.info(f"Fetching candles: {symbol} {tf} | {from_str} → {to_str}")
+                logger.info(
+                    f"{'Fetching' if fetcher else 'Generating'} candles: "
+                    f"{symbol} {tf} | {from_str} → {to_str}"
+                )
                 try:
-                    candles = fetcher.fetch_from_date(symbol, tf, from_dt, to_dt)
+                    if fetcher:
+                        candles = fetcher.fetch_from_date(symbol, tf, from_dt, to_dt)
+                    else:
+                        candles = make_synthetic_candles(
+                            candle_count, symbol, from_dt, tf
+                        )
                 except Exception as exc:
-                    logger.error(f"Failed to fetch {symbol} {tf}: {exc}")
+                    logger.error(f"Failed to get candles for {symbol} {tf}: {exc}")
                     continue
 
                 if len(candles) < 150:
@@ -185,7 +238,8 @@ def main():
                 )
                 report.add_results(symbol, tf, signals)
     finally:
-        fetcher.disconnect()
+        if fetcher:
+            fetcher.disconnect()
 
     # ── output ────────────────────────────────────────────────────────────────
     report.print_summary()
