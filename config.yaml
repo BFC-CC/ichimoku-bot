@@ -1,0 +1,65 @@
+# ─────────────────────────────────────────────
+#  Ichimoku Bot – Main Configuration
+# ─────────────────────────────────────────────
+
+general:
+  log_level: INFO          # DEBUG | INFO | WARNING | ERROR
+  timezone: UTC
+  dry_run: true            # true = log signals only, no Discord messages
+
+# ── Ichimoku parameters ──────────────────────
+ichimoku:
+  tenkan_period: 9
+  kijun_period: 26
+  senkou_b_period: 52
+  displacement: 26         # how many candles Senkou A/B are shifted forward
+  chikou_shift: 26         # how many candles Chikou is shifted back
+
+# ── MT5 connection ───────────────────────────
+broker:
+  mt5:
+    # MT5 terminal must be running on the same machine
+    login: 0                        # your MT5 account number (or leave 0 for current session)
+    server: ""                      # e.g. "ICMarkets-Demo"  (leave "" to use current session)
+    password: ""                    # leave "" to use current session
+
+# ── Discord notifications ────────────────────
+notifications:
+  discord:
+    enabled: true
+    webhook_url: "${DISCORD_WEBHOOK_URL}"   # set in .env file
+
+# ── Pairs and timeframes to monitor ─────────
+pairs:
+  - symbol: EURUSD
+    timeframes: [H1, H4]
+    enabled_signals:
+      - tk_cross
+      - kumo_breakout
+      - chikou_cross
+
+  - symbol: GBPUSD
+    timeframes: [H1]
+    enabled_signals:
+      - tk_cross
+      - kumo_breakout
+
+  - symbol: USDJPY
+    timeframes: [H4]
+    enabled_signals:
+      - tk_cross
+      - kumo_breakout
+      - chikou_cross
+
+# ── Signal behaviour ─────────────────────────
+signals:
+  cooldown_minutes: 30       # minimum gap between same signal on same pair/timeframe
+  cloud_filter: true         # TK cross only fires when price is on correct side of cloud
+  strong_signal_only: false  # if true, require ALL three signals to align for a notification
+
+# ── Backtesting ──────────────────────────────
+backtest:
+  from_date: "2024-01-01"
+  to_date:   "2024-12-31"
+  output_dir: "./backtest_results"
+  candle_count: 5000         # how many candles to fetch per pair/timeframe for warmup + replay
