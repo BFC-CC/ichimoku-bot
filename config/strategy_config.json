@@ -1,0 +1,125 @@
+{
+  "account": {
+    "login": 0,
+    "password": "",
+    "server": "",
+    "demo_mode": true
+  },
+
+  "goal": {
+    "target_profit_pct": 10.0,
+    "notify_on_goal": true
+  },
+
+  "ichimoku": {
+    "tenkan_period": 9,
+    "kijun_period": 26,
+    "senkou_b_period": 52,
+    "displacement": 26,
+
+    "signal_mode": "tk_cross",
+
+    "entry_conditions": {
+      "require_price_above_cloud": true,
+      "require_tenkan_above_kijun": true,
+      "require_chikou_clear": true,
+      "require_bullish_cloud": true,
+      "require_future_cloud_bullish": false
+    },
+
+    "exit_conditions": {
+      "exit_on_tk_cross_against": true,
+      "exit_on_price_enter_cloud": false,
+      "exit_on_chikou_cross_down": false
+    },
+
+    "cloud_min_thickness_pips": 5,
+    "use_virtual_tp": false
+  },
+
+  "pairs": ["EURUSD","GBPUSD","USDJPY","AUDUSD","USDCAD","EURGBP","NZDUSD","EURJPY"],
+
+  "timeframes": {
+    "primary": "H4",
+    "confirmation": "D1"
+  },
+
+  "session_filter": {
+    "enabled": true,
+    "start_hour_utc": 7,
+    "end_hour_utc": 20,
+    "trade_friday_close": false
+  },
+
+  "news_filter": {
+    "enabled": false,
+    "minutes_before": 30,
+    "minutes_after": 30,
+    "impact_levels": ["high"]
+  },
+
+  "risk_management": {
+    "risk_per_trade_pct": 1.0,
+    "max_open_trades": 3,
+    "max_daily_loss_pct": 3.0,
+    "max_drawdown_pct": 8.0,
+
+    "lot_mode": "risk_pct",
+    "fixed_lot_size": 0.01,
+
+    "stop_loss": {
+      "method": "kijun",
+      "fixed_pips": 40,
+      "atr_period": 14,
+      "atr_multiplier": 1.5,
+      "buffer_pips": 5
+    },
+
+    "take_profit": {
+      "method": "ratio",
+      "rr_ratio": 2.0,
+      "fixed_pips": 80
+    },
+
+    "break_even": {
+      "enabled": true,
+      "trigger_pips": 20,
+      "lock_in_pips": 2
+    },
+
+    "trailing_stop": {
+      "enabled": true,
+      "method": "kijun",
+      "fixed_trail_pips": 20,
+      "trail_step_pips": 5
+    }
+  },
+
+  "execution": {
+    "slippage_points": 20,
+    "magic_number": 20260309,
+    "order_comment": "IchiBot_v3",
+    "retry_attempts": 3,
+    "retry_delay_ms": 500,
+    "use_market_orders": true
+  },
+
+  "scheduler": {
+    "bar_check_interval_sec": 60,
+    "use_ontrade_transaction": true
+  },
+
+  "logging": {
+    "level": "INFO",
+    "log_to_file": true,
+    "log_dir": "logs",
+    "max_file_mb": 10,
+    "log_trades_csv": true
+  },
+
+  "dashboard": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 8000
+  }
+}
