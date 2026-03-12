@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Architecture — IchiBot v3</title>
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --surface: #1a1a2e;
+    --surface2: #16213e;
+    --border: #0f3460;
+    --accent: #00d4ff;
+    --accent2: #00ff88;
+    --text: #e0e0e0;
+    --text-muted: #888;
+    --red: #ff4444;
+    --orange: #ffaa00;
+    --code-bg: #0d1117;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7;
+    display: flex; min-height: 100vh;
+  }
+  nav {
+    width: 260px; min-height: 100vh; background: var(--surface);
+    border-right: 1px solid var(--border); padding: 24px 0;
+    position: fixed; overflow-y: auto;
+  }
+  nav .logo {
+    font-size: 18px; font-weight: 700; color: var(--accent);
+    padding: 0 24px 20px; border-bottom: 1px solid var(--border);
+    font-family: 'Consolas','Monaco',monospace;
+  }
+  nav .logo span { color: var(--text-muted); font-weight: 400; font-size: 12px; display: block; }
+  nav ul { list-style: none; margin-top: 16px; }
+  nav ul li a {
+    display: block; padding: 10px 24px; color: var(--text-muted);
+    text-decoration: none; font-size: 14px; transition: all 0.2s;
+    border-left: 3px solid transparent;
+  }
+  nav ul li a:hover { color: var(--text); background: var(--surface2); }
+  nav ul li a.active { color: var(--accent); border-left-color: var(--accent); background: var(--surface2); }
+  nav .section-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-muted); padding: 20px 24px 6px;
+  }
+  main { margin-left: 260px; flex: 1; padding: 48px 64px; max-width: 1000px; }
+  h1 { font-size: 32px; color: var(--accent); margin-bottom: 8px; }
+  .subtitle { color: var(--text-muted); font-size: 16px; margin-bottom: 40px; }
+  h2 { font-size: 22px; color: var(--accent); margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 16px; color: var(--accent2); margin: 24px 0 8px; }
+  h4 { font-size: 14px; color: var(--orange); margin: 16px 0 6px; }
+  p { margin-bottom: 14px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 8px 0 16px 24px; }
+  li { margin-bottom: 6px; font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--accent); font-weight: 600; background: var(--surface2); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  tr:hover td { background: var(--surface); }
+  code { font-family: 'Consolas','Monaco','Fira Code',monospace; background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; color: var(--accent2); }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 16px 0; font-size: 13px; line-height: 1.5; }
+  pre code { background: none; padding: 0; color: var(--text); }
+  .callout { background: var(--surface2); border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; padding: 16px 20px; margin: 16px 0; }
+  .callout.warn { border-left-color: var(--orange); }
+  .callout .callout-title { font-weight: 700; font-size: 13px; text-transform: uppercase; margin-bottom: 6px; }
+  .callout .callout-title.info { color: var(--accent); }
+  .callout .callout-title.warn { color: var(--orange); }
+  .pipeline { display: flex; align-items: center; gap: 0; margin: 20px 0; flex-wrap: wrap; }
+  .pipeline .stage {
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 10px 16px; border-radius: 6px; font-size: 13px;
+    font-family: monospace; color: var(--accent2); white-space: nowrap;
+  }
+  .pipeline .arrow { color: var(--accent); font-size: 20px; padding: 0 4px; }
+  .file-tag {
+    display: inline-block; background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 8px; font-size: 12px; font-family: monospace;
+    color: var(--text-muted); margin: 2px 2px;
+  }
+  @media (max-width: 900px) { nav { display: none; } main { margin-left: 0; padding: 24px; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">IchiBot v3<span>Documentation</span></div>
+  <div class="section-label">Overview</div>
+  <ul>
+    <li><a href="index.html">Home</a></li>
+    <li><a href="architecture.html" class="active">Architecture</a></li>
+  </ul>
+  <div class="section-label">Guides</div>
+  <ul>
+    <li><a href="tool_usage_guide.html">Tool &amp; CLI Usage</a></li>
+    <li><a href="deploy_guide.html">Deployment</a></li>
+  </ul>
+  <div class="section-label">Reference</div>
+  <ul>
+    <li><a href="configuration.html">Configuration</a></li>
+  </ul>
+</nav>
+
+<main>
+  <h1>Architecture</h1>
+  <p class="subtitle">System design, pipeline flow, and component relationships</p>
+
+  <!-- ──────────────────── TWO SYSTEMS ──────────────────── -->
+  <h2>Two Coexisting Systems</h2>
+  <p>The repository contains two independent trading systems. They share the core Ichimoku calculation code but have separate entry points, configs, and pipelines.</p>
+
+  <table>
+    <tr><th></th><th>Signal Bot (v1)</th><th>Trading Bot (v3)</th></tr>
+    <tr><td>Entry point</td><td><code>bot.py</code></td><td><code>trade_bot.py</code></td></tr>
+    <tr><td>Config</td><td><code>config.yaml</code> (YAML)</td><td><code>config/strategy_config.json</code> (JSON)</td></tr>
+    <tr><td>Signal logic</td><td><code>signal_detector.py</code> (6 types)</td><td><code>signal_engine.py</code> (4 modes)</td></tr>
+    <tr><td>Output</td><td>Discord notifications</td><td>MT5 trade execution</td></tr>
+    <tr><td>Dashboard</td><td>Streamlit (port 8501)</td><td>FastAPI (port 8000)</td></tr>
+    <tr><td>Scheduler</td><td>APScheduler (cron-based)</td><td>Polling loop (configurable interval)</td></tr>
+  </table>
+
+  <h3>Shared Components</h3>
+  <p>
+    <span class="file-tag">core/indicator.py</span>
+    <span class="file-tag">core/candle_buffer.py</span>
+    &mdash; Both systems use the same pure-pandas Ichimoku calculator and candle buffer. No other source files are shared.
+  </p>
+
+  <!-- ──────────────────── V1 PIPELINE ──────────────────── -->
+  <h2 id="v1">Signal Bot (v1) Pipeline</h2>
+
+  <div class="pipeline">
+    <div class="stage">MT5 / data_fetcher.py</div>
+    <div class="arrow">&rarr;</div>
+    <div class="stage">candle_buffer.py</div>
+    <div class="arrow">&rarr;</div>
+    <div class="stage">indicator.py</div>
+    <div class="arrow">&rarr;</div>
+    <div class="stage">signal_detector.py</div>
+    <div class="arrow">&rarr;</div>
+    <div class="stage">notifier.py</div>
+  </div>
+
+  <table>
+    <tr><th>File</th><th>Responsibility</th></tr>
+    <tr><td><code>core/indicator.py</code></td><td>Pure-pandas Ichimoku calculator. <code>calculate()</code> returns a full DataFrame; <code>latest_values()</code> returns a 16-key flat dict. Keys: tenkan, kijun, senkou_a, senkou_b, chikou, close, cloud_top, cloud_bottom + prev_* variants.</td></tr>
+    <tr><td><code>core/signal_detector.py</code></td><td>Stateful detector consuming the <code>latest_values()</code> dict. Per-<code>(pair, timeframe, signal_type)</code> cooldown timers. Emits <code>Signal</code> dataclasses. 6 types: tk_cross, kumo_breakout, chikou_cross (up/down each).</td></tr>
+    <tr><td><code>core/candle_buffer.py</code></td><td>Rolling OHLC window with deduplication. Seeded with 300 historical candles, then appended on each tick. <code>append()</code> silently deduplicates by timestamp.</td></tr>
+    <tr><td><code>core/data_fetcher.py</code></td><td>MT5 data layer. Graceful degradation: MetaTrader5 (native) &rarr; mt5linux (Wine) &rarr; MT5_AVAILABLE=False.</td></tr>
+    <tr><td><code>core/notifier.py</code></td><td>Discord webhook client with retry and 429 rate-limit handling. <code>dry_run=True</code> logs instead of POSTing.</td></tr>
+  </table>
+
+  <h3>APScheduler Timing</h3>
+  <p>Jobs fire at candle close + 1 minute (to avoid incomplete bars):</p>
+  <table>
+    <tr><th>Timeframe</th><th>Schedule</th></tr>
+    <tr><td>H1</td><td>1 minute past each hour</td></tr>
+    <tr><td>H4</td><td>1 minute past 00:00, 04:00, 08:00, 12:00, 16:00, 20:00</td></tr>
+    <tr><td>D1</td><td>00:01 UTC daily</td></tr>
+  </table>
+
+  <!-- ──────────────────── V3 PIPELINE ──────────────────── -->
+  <h2 id="v3">Trading Bot (v3) Pipeline</h2>
+
+  <div class="pipeline">
+    <div class="stage">MT5 / mt5_connector.py</div>
+    <div class="arrow">&rarr;</div>
+    <div class="stage">candle_close_guard.py</div>
+    <div class="arrow">&rarr;</div>
+    <div class="stage">ichimoku_calculator.py</div>
+    <div class="arrow">&rarr;</div>
+    <div class="stage">signal_engine.py</div>
+    <div class="arrow">&rarr;</div>
+    <div class="stage">filters</div>
+    <div class="arrow">&rarr;</div>
+    <div class="stage">lot_calculator.py</div>
+    <div class="arrow">&rarr;</div>
+    <div class="stage">order_executor.py</div>
+  </div>
+
+  <p>Plus parallel management loops:</p>
+  <div class="pipeline">
+    <div class="stage">position_manager.py</div>
+    <div class="arrow">&rarr;</div>
+    <div class="stage">break_even / trailing</div>
+    <div class="arrow">&rarr;</div>
+    <div class="stage">trade_event_listener.py</div>
+    <div class="arrow">&rarr;</div>
+    <div class="stage">action_verifier.py</div>
+  </div>
+
+  <h3>Core Components</h3>
+  <table>
+    <tr><th>File</th><th>Responsibility</th></tr>
+    <tr><td><code>trade_bot.py</code></td><td><code>TradeBotOrchestrator</code> &mdash; main loop. Each cycle: update account &rarr; check halt &rarr; process each symbol &rarr; manage positions &rarr; poll trade events &rarr; update state.</td></tr>
+    <tr><td><code>core/config_loader.py</code></td><td>Parse JSON into typed dataclasses (<code>Config</code> root, 14 nested configs). Full validation on load.</td></tr>
+    <tr><td><code>core/candle_close_guard.py</code></td><td>Strip live bar (<code>df.iloc[:-1]</code>). Track last processed bar per symbol to avoid duplicate evaluation.</td></tr>
+    <tr><td><code>core/ichimoku_calculator.py</code></td><td>Wraps <code>indicator.py</code>. Returns frozen <code>IchimokuValues</code> dataclass (immutable, thread-safe). Also provides <code>is_chikou_clear()</code> and <code>pip_size()</code>.</td></tr>
+    <tr><td><code>core/signal_engine.py</code></td><td>4 signal modes via <code>evaluate(ichi, df)</code>. Returns <code>SignalResult</code> (BUY/SELL/NEUTRAL + score + conditions_met). Also <code>check_exit()</code> for open positions and <code>classify_signal_strength()</code>.</td></tr>
+  </table>
+
+  <h3 id="signal-modes">Signal Modes</h3>
+  <table>
+    <tr><th>Mode</th><th>Speed</th><th>BUY Conditions</th></tr>
+    <tr>
+      <td><code>tk_cross</code></td>
+      <td>Fastest</td>
+      <td>TK cross up + price above cloud + (opt) chikou clear + (opt) bullish cloud</td>
+    </tr>
+    <tr>
+      <td><code>chikou_cross</code></td>
+      <td>Moderate</td>
+      <td>Chikou crosses above close[-26] + chikou above cloud at -26 + price above cloud</td>
+    </tr>
+    <tr>
+      <td><code>kumo_breakout</code></td>
+      <td>Moderate</td>
+      <td>Price breaks above cloud (prev bar was inside/below) + (opt) future cloud bullish</td>
+    </tr>
+    <tr>
+      <td><code>full_confirm</code></td>
+      <td>Conservative</td>
+      <td>Price &gt; cloud + TK alignment + chikou clear + bullish cloud + min cloud thickness</td>
+    </tr>
+  </table>
+  <p>SELL conditions are the exact mirror of BUY in all modes.</p>
+
+  <h3>Filters (applied in order)</h3>
+  <table>
+    <tr><th>Filter</th><th>File</th><th>What It Checks</th></tr>
+    <tr><td>Signal Scoring</td><td><code>signal_engine.py</code></td><td>6-component score (0-1). Rejects if below <code>min_score_threshold</code>. Components: tk_alignment, price_vs_cloud, chikou_clear, cloud_direction, cloud_thickness, trend_filter.</td></tr>
+    <tr><td>Session</td><td><code>session_filter.py</code></td><td>UTC hour window (default 07-20). Blocks Friday after 17:00 UTC.</td></tr>
+    <tr><td>News</td><td><code>news_filter.py</code></td><td>Static calendar (<code>data/news_events.json</code>). Blackout window around FOMC, NFP, ECB, BOJ events.</td></tr>
+    <tr><td>D1 Trend</td><td><code>trend_filter.py</code></td><td>D1 timeframe cloud direction must confirm trade direction.</td></tr>
+    <tr><td>Momentum</td><td><code>momentum.py</code></td><td>(Optional) RSI, ADX, EMA alignment, ATR consistency &rarr; 0-100 score.</td></tr>
+    <tr><td>Adversarial</td><td><code>adversarial_validator.py</code></td><td>(Optional) 3 critics (logical/contextual/structural) &rarr; RTR score. Rejects below <code>min_rtr_score</code>.</td></tr>
+    <tr><td>Risk Guard</td><td><code>risk_manager.py</code></td><td>Max open trades, duplicate symbol, daily loss cap, max drawdown, goal reached.</td></tr>
+  </table>
+
+  <h3>Trade Execution</h3>
+  <table>
+    <tr><th>File</th><th>Responsibility</th></tr>
+    <tr><td><code>core/lot_calculator.py</code></td><td>3 lot modes: <code>risk_pct</code> (default), <code>fixed</code>, <code>compound</code>. JPY-aware pip size. Score scaling: <code>max(signal_score, 0.1)</code>. Rounds to <code>volume_step</code>, clamps to <code>[volume_min, volume_max]</code>.</td></tr>
+    <tr><td><code>core/sltp_builder.py</code></td><td>SL methods: kijun, atr, cloud_edge, fixed_pips (+ buffer_pips). TP methods: ratio, next_cloud, fixed_pips. Minimum SL distance: 2 pips.</td></tr>
+    <tr><td><code>core/order_executor.py</code></td><td>Send market orders with retry (<code>retry_attempts</code>, <code>retry_delay_ms</code>). Magic number isolation on all requests.</td></tr>
+    <tr><td><code>core/mt5_connector.py</code></td><td>MT5 bridge + simulation fallback. <code>force_sim=True</code> in tests. Provides: connect, get_bars, get_account_info, get_open_positions, get_symbol_info, get_deal_history.</td></tr>
+  </table>
+
+  <h3>Position Lifecycle</h3>
+  <pre><code>OPEN &rarr; [each cycle on closed bar]
+  ├── Break-even: profit_pips &ge; trigger_pips &rarr; SL = entry + lock_in_pips
+  ├── Trailing stop: kijun or fixed method, min trail_step_pips improvement
+  ├── Ichimoku exits: TK cross against / price enters cloud / chikou cross
+  └── Virtual TP (if enabled): close manually at TP price
+CLOSE &rarr; TradeEventListener.poll() &rarr; ActionVerifier.verify() &rarr; log</code></pre>
+
+  <table>
+    <tr><th>File</th><th>Responsibility</th></tr>
+    <tr><td><code>core/break_even_manager.py</code></td><td>Move SL to entry + <code>lock_in_pips</code> after <code>trigger_pips</code> profit.</td></tr>
+    <tr><td><code>core/position_manager.py</code></td><td>Trailing stop (kijun or fixed) + ichimoku exit conditions. Only updates SL if improvement &ge; <code>trail_step_pips</code>.</td></tr>
+    <tr><td><code>core/trade_event_listener.py</code></td><td>Poll MT5 deal history for close events. Trigger <code>ActionVerifier</code> + <code>TradeLogger</code>.</td></tr>
+    <tr><td><code>core/action_verifier.py</code></td><td>Score trades CORRECT/INCORRECT. Classify failures: SL_HIT, AGAINST_D1_TREND, WEAK_SIGNAL, SESSION_ANOMALY, OVERTRADED, SYSTEM_ERROR. Post-trade quality checks (slippage, fill ratio, spread).</td></tr>
+  </table>
+
+  <!-- ──────────────────── STATE & DASHBOARD ──────────────────── -->
+  <h2>State &amp; Dashboard</h2>
+
+  <table>
+    <tr><th>File</th><th>Responsibility</th></tr>
+    <tr><td><code>utils/state.py</code></td><td><code>BotState</code> &mdash; thread-safe shared state. Uses <code>threading.Lock</code>. Dataclasses: <code>SignalSnapshot</code>, <code>PositionSnapshot</code>, <code>TradeRecord</code>, <code>BotSnapshot</code>. Dashboard reads state from a different thread.</td></tr>
+    <tr><td><code>utils/dashboard_server.py</code></td><td>FastAPI + WebSocket. Serves HTML dashboard at port 8000. <code>/api/health</code> JSON endpoint. <code>/api/validation/metrics</code> when adversarial validation enabled. WebSocket pushes every 2s.</td></tr>
+    <tr><td><code>utils/state_pusher.py</code></td><td>Background thread that POSTs <code>BotSnapshot</code> to a remote dashboard (for split deployments).</td></tr>
+    <tr><td><code>utils/keep_alive.py</code></td><td>Background daemon that pings <code>{keep_alive_url}/api/health</code> to prevent Render free-tier spin-down.</td></tr>
+  </table>
+
+  <!-- ──────────────────── HEALTH ──────────────────── -->
+  <h2>Health Monitoring</h2>
+
+  <p><code>core/health_monitor.py</code> tracks:</p>
+  <ul>
+    <li><strong>Tick gaps</strong> &mdash; alerts if no tick received for &gt; <code>max_tick_gap_sec</code> (default 300s)</li>
+    <li><strong>Consecutive errors</strong> &mdash; alerts after <code>max_consecutive_errors</code> (default 3)</li>
+    <li><strong>Execution failures</strong> &mdash; failed order attempts</li>
+    <li><strong>Heartbeat</strong> &mdash; periodic "alive" signal every <code>heartbeat_interval_sec</code> (default 3600s)</li>
+  </ul>
+  <p>Alerts fire via the configured <code>notifier_fn</code> with cooldown (<code>alert_cooldown_sec</code>, default 900s) to prevent spam.</p>
+
+  <!-- ──────────────────── DATA CONTRACTS ──────────────────── -->
+  <h2>Key Data Contracts</h2>
+
+  <h3>IchimokuValues (frozen dataclass)</h3>
+  <pre><code>@dataclass(frozen=True)
+class IchimokuValues:
+    tenkan, kijun, senkou_a, senkou_b, chikou, close       # current bar
+    cloud_top, cloud_bottom                                  # derived
+    prev_tenkan, prev_kijun, prev_senkou_a, prev_senkou_b   # previous bar
+    prev_chikou, prev_close, prev_cloud_top, prev_cloud_bottom
+    future_span_a, future_span_b                             # projected +26
+    cloud_thickness_pips: float
+    bar_time: pd.Timestamp</code></pre>
+
+  <h3>SignalResult</h3>
+  <pre><code>@dataclass
+class SignalResult:
+    signal: Signal           # BUY / SELL / NEUTRAL
+    mode_used: str           # which mode fired
+    reasons: list[str]       # human-readable conditions met
+    conditions_met: dict     # {"price_above_cloud": True, ...}
+    bar_time: pd.Timestamp
+    ichi: IchimokuValues
+    score: float = 1.0       # signal scoring (0-1)
+    score_breakdown: dict    # per-component scores
+    strength: str = ""       # STRONG / MODERATE / WEAK
+    momentum_score: float    # 0-100</code></pre>
+
+  <h3>SLTPResult</h3>
+  <pre><code>@dataclass
+class SLTPResult:
+    sl: float          # stop loss price
+    tp: float          # take profit price
+    sl_pips: float     # SL distance in pips
+    tp_pips: float     # TP distance in pips
+    sl_method: str     # kijun / atr / cloud_edge / fixed_pips
+    tp_method: str     # ratio / next_cloud / fixed_pips</code></pre>
+
+  <!-- ──────────────────── CONSTRAINTS ──────────────────── -->
+  <h2>Key Constraints</h2>
+  <ul>
+    <li>Ichimoku needs &ge;78 candles for valid values (52 for Senkou B + 26 for displacement). Buffer seeds with 300.</li>
+    <li>Chikou is current close shifted back 26 bars. <code>is_chikou_clear()</code> checks high-low range, not just close[-26].</li>
+    <li>All signal crossovers compare <code>prev_*</code> vs current (two-bar edge detection).</li>
+    <li><code>CandleCloseGuard</code> always strips the live bar (<code>df.iloc[:-1]</code>). Signals never evaluate incomplete bars.</li>
+    <li><code>IchimokuValues</code> is frozen (immutable) for thread safety between bot loop and dashboard.</li>
+    <li><code>BotState</code> uses <code>threading.Lock</code> for all reads/writes.</li>
+    <li><code>MT5Connector</code> uses <code>force_sim=True</code> in all tests &mdash; never connects to a real broker in CI.</li>
+    <li>Lot score floor: <code>max(signal_score, 0.1)</code> ensures lot size is never zero when score scaling is enabled.</li>
+    <li>JPY pip size: <code>0.01</code> vs <code>0.0001</code> for all other pairs. Determined by <code>"JPY" in symbol</code>.</li>
+    <li>Magic number isolation: all MT5 queries filter by <code>execution.magic_number</code>. Never touches other EAs' orders.</li>
+    <li><code>failed_actions.csv</code> uses <code>filelock</code> for thread-safe writes.</li>
+  </ul>
+
+  <!-- ──────────────────── FILE MAP ──────────────────── -->
+  <h2>Complete File Map</h2>
+
+  <table>
+    <tr><th>Directory</th><th>File</th><th>System</th><th>Purpose</th></tr>
+    <tr><td rowspan="2"><code>config/</code></td><td><code>strategy_config.json</code></td><td>v3</td><td>All trading parameters (JSON)</td></tr>
+    <tr><td></td><td></td><td></td></tr>
+    <tr><td rowspan="21"><code>core/</code></td><td><code>indicator.py</code></td><td>Shared</td><td>Pure-pandas Ichimoku calculator</td></tr>
+    <tr><td><code>candle_buffer.py</code></td><td>Shared</td><td>Rolling OHLC window</td></tr>
+    <tr><td><code>signal_detector.py</code></td><td>v1</td><td>6 signal rules + cooldowns</td></tr>
+    <tr><td><code>data_fetcher.py</code></td><td>v1</td><td>MT5 data layer</td></tr>
+    <tr><td><code>notifier.py</code></td><td>v1</td><td>Discord webhook client</td></tr>
+    <tr><td><code>config_loader.py</code></td><td>v3</td><td>JSON &rarr; typed dataclasses</td></tr>
+    <tr><td><code>candle_close_guard.py</code></td><td>v3</td><td>Live bar stripping + dedup</td></tr>
+    <tr><td><code>ichimoku_calculator.py</code></td><td>v3</td><td>Frozen IchimokuValues + chikou clearance</td></tr>
+    <tr><td><code>signal_engine.py</code></td><td>v3</td><td>4 signal modes + scoring + exit checks</td></tr>
+    <tr><td><code>lot_calculator.py</code></td><td>v3</td><td>Lot sizing (3 modes)</td></tr>
+    <tr><td><code>sltp_builder.py</code></td><td>v3</td><td>SL/TP calculation (4 SL + 3 TP methods)</td></tr>
+    <tr><td><code>risk_manager.py</code></td><td>v3</td><td>RiskGuard pre-trade checks</td></tr>
+    <tr><td><code>mt5_connector.py</code></td><td>v3</td><td>MT5 bridge + simulation</td></tr>
+    <tr><td><code>order_executor.py</code></td><td>v3</td><td>Order execution with retry</td></tr>
+    <tr><td><code>session_filter.py</code></td><td>v3</td><td>UTC hour + Friday filter</td></tr>
+    <tr><td><code>trend_filter.py</code></td><td>v3</td><td>D1 cloud direction</td></tr>
+    <tr><td><code>news_filter.py</code> + <code>news_calendar.py</code></td><td>v3</td><td>Static calendar blackout</td></tr>
+    <tr><td><code>break_even_manager.py</code></td><td>v3</td><td>Break-even SL movement</td></tr>
+    <tr><td><code>position_manager.py</code></td><td>v3</td><td>Trailing stop + exit conditions</td></tr>
+    <tr><td><code>action_verifier.py</code></td><td>v3</td><td>Post-trade scoring + quality</td></tr>
+    <tr><td><code>trade_event_listener.py</code></td><td>v3</td><td>Deal close detection</td></tr>
+    <tr><td rowspan="3"></td><td><code>health_monitor.py</code></td><td>v3</td><td>Tick gaps + error tracking</td></tr>
+    <tr><td><code>adversarial_validator.py</code></td><td>v3</td><td>3-critic RTR scoring (optional)</td></tr>
+    <tr><td><code>momentum.py</code></td><td>v3</td><td>RSI/ADX/EMA scoring (optional)</td></tr>
+    <tr><td><code>data/</code></td><td><code>news_events.json</code></td><td>v3</td><td>Static news calendar data</td></tr>
+    <tr><td rowspan="7"><code>utils/</code></td><td><code>logger.py</code></td><td>v3</td><td>Loguru setup</td></tr>
+    <tr><td><code>trade_logger.py</code></td><td>v3</td><td>trades.csv writer</td></tr>
+    <tr><td><code>failed_action_logger.py</code></td><td>v3</td><td>failed_actions.csv writer (filelock)</td></tr>
+    <tr><td><code>state.py</code></td><td>v3</td><td>Thread-safe BotState</td></tr>
+    <tr><td><code>dashboard_server.py</code></td><td>v3</td><td>FastAPI + WebSocket dashboard</td></tr>
+    <tr><td><code>keep_alive.py</code></td><td>v3</td><td>Render keep-alive ping</td></tr>
+    <tr><td><code>verify_deploy.py</code></td><td>v3</td><td>Deployment verification</td></tr>
+  </table>
+
+</main>
+</body>
+</html>

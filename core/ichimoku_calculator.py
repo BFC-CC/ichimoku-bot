@@ -172,6 +172,57 @@ class IchimokuCalculator:
         )
 
 
+def is_chikou_clear(
+    df: pd.DataFrame,
+    direction: str,
+    displacement: int = 26,
+    lookback: int = 5,
+) -> tuple[bool, float]:
+    """
+    Check if chikou span is clear of price congestion at the reference point.
+
+    Chikou = current close, plotted at idx - displacement.
+    At that reference index, check the high-low range across
+    [ref_idx - lookback : ref_idx + lookback + 1].
+
+    BUY: chikou must be above the highest high in the window.
+    SELL: chikou must be below the lowest low in the window.
+
+    Returns (is_clear, margin_pips) where margin is the distance from the
+    nearest boundary. Returns (True, 0.0) if insufficient bars.
+    """
+    col_close = "close" if "close" in df.columns else "Close"
+    col_high = "high" if "high" in df.columns else "High"
+    col_low = "low" if "low" in df.columns else "Low"
+
+    if col_close not in df.columns:
+        return True, 0.0
+
+    idx = len(df) - 1
+    ref_idx = idx - displacement
+
+    if ref_idx < lookback or ref_idx + lookback >= len(df):
+        return True, 0.0
+
+    chikou_val = float(df[col_close].iloc[idx])
+
+    window_start = max(0, ref_idx - lookback)
+    window_end = ref_idx + lookback + 1
+    window = df.iloc[window_start:window_end]
+
+    highest_high = float(window[col_high].max())
+    lowest_low = float(window[col_low].min())
+
+    if direction.upper() == "BUY":
+        is_clear = chikou_val > highest_high
+        margin = chikou_val - highest_high
+    else:
+        is_clear = chikou_val < lowest_low
+        margin = lowest_low - chikou_val
+
+    return is_clear, margin
+
+
 def _f(val) -> float:
     """Convert to float, handling NaN gracefully."""
     import math

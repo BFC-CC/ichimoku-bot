@@ -166,9 +166,15 @@ ws.onmessage = (e) => {
 class DashboardServer:
     """FastAPI dashboard with WebSocket data push."""
 
-    def __init__(self, config: DashboardConfig, state: BotState) -> None:
+    def __init__(
+        self,
+        config: DashboardConfig,
+        state: BotState,
+        validation_metrics=None,
+    ) -> None:
         self.cfg = config
         self.state = state
+        self.validation_metrics = validation_metrics
         self._thread: Optional[threading.Thread] = None
 
         if not _fastapi_available:
@@ -181,6 +187,21 @@ class DashboardServer:
         async def index():
             return DASHBOARD_HTML
 
+        @self.app.get("/api/health")
+        async def health():
+            snap = self.state.snapshot()
+            return {
+                "status": "ok",
+                "balance": snap.balance,
+                "is_halted": snap.is_halted,
+            }
+
+        @self.app.get("/api/validation/metrics")
+        async def validation_metrics_endpoint():
+            if self.validation_metrics is None:
+                return {"enabled": False}
+            return self.validation_metrics.get_metrics()
+
         @self.app.websocket("/ws")
         async def websocket_endpoint(websocket: WebSocket):
             await websocket.accept()
@@ -188,6 +209,8 @@ class DashboardServer:
                 while True:
                     snap = self.state.snapshot()
                     data = asdict(snap)
+                    if self.validation_metrics is not None:
+                        data["validation_events"] = self.validation_metrics.get_metrics()
                     await websocket.send_text(json.dumps(data, default=str))
                     await asyncio.sleep(2)
             except WebSocketDisconnect:

@@ -1,19 +1,18 @@
 # MT5 Ichimoku Trading Bot — Agent Handoff Document
-**Version:** 3.0  
-**Status:** Architecture complete — implementation pending  
-**Purpose:** Full context document for a coding agent to finalize implementation  
+**Version:** 3.0
+**Status:** Implementation complete (375 tests passing)
+**Purpose:** Architecture reference and specification for the v3 Trading Bot
 
 ---
 
 ## 0. AGENT INSTRUCTIONS (READ FIRST)
 
-You are picking up a fully planned but partially implemented automated Forex trading bot. Your job is to:
+This document was originally a build plan for the v3 Trading Bot. The implementation is now **complete**. Use this as an architecture reference. Key rules that remain enforced in the codebase:
 
-1. **Audit** the existing code files listed in Section 6 — identify what is usable, what is incomplete, and what conflicts with the final spec
-2. **Plan** every file that needs to be created or rewritten before writing a single line
-3. **Implement** the complete system in the correct build order (Section 9), reusing all valid existing code
-4. **Never** evaluate signals on an open/forming bar — always use the last confirmed closed bar (index `df.iloc[-1]` after stripping the live bar with `df = df.iloc[:-1]`)
-5. **Always** run the ActionVerifier after every trade close and append failures to `logs/failed_actions.csv`
+1. **Never** evaluate signals on an open/forming bar — always use the last confirmed closed bar (index `df.iloc[-1]` after stripping the live bar with `df = df.iloc[:-1]`)
+2. **Always** run the ActionVerifier after every trade close and append failures to `logs/failed_actions.csv`
+3. All files listed in Section 7 are implemented and tested
+4. Additional features added post-plan: signal scoring, chikou clearance (high-low range), health monitor, news filter (static calendar), adversarial validation, momentum scoring, signal strength classification, keep-alive pings
 
 ---
 
@@ -175,10 +174,39 @@ Every parameter below must be parsed by `ConfigLoader` into a typed dataclass. N
   "dashboard": {
     "enabled": true,
     "host": "0.0.0.0",
-    "port": 8000
+    "port": 8000,
+    "keep_alive_url": "",
+    "keep_alive_interval_sec": 600
+  },
+
+  "health_monitor": {
+    "enabled": true,
+    "max_tick_gap_sec": 300,
+    "max_consecutive_errors": 3,
+    "alert_cooldown_sec": 900,
+    "heartbeat_interval_sec": 3600
+  },
+
+  "validation": {
+    "adversarial_validation": false,
+    "min_rtr_score": 0.6,
+    "momentum_scoring": false,
+    "strength_classification": false,
+    "quality_checks": {
+      "max_slippage_pips": 3.0,
+      "min_fill_ratio": 0.95,
+      "max_spread_pips": 5.0
+    },
+    "strength_lot_multiplier": {
+      "STRONG": 1.0,
+      "MODERATE": 0.7,
+      "WEAK": 0.4
+    }
   }
 }
 ```
+
+> **Note (added post-implementation):** The `ichimoku` section also supports a `signal_scoring` sub-object with `enabled`, `min_score_threshold`, `scale_lot_by_score`, and `weights` (6 components). See `config/strategy_config.json` for the live config or `core/config_loader.py:SignalScoringConfig` for the dataclass definition.
 
 ### Config Validation Rules (enforced by ConfigLoader)
 - `tenkan_period < kijun_period < senkou_b_period` — must be strictly ascending
@@ -317,68 +345,74 @@ CLOSE → TradeEventListener detects → ActionVerifier.verify() → log
 
 ---
 
-## 6. EXISTING CODE — AUDIT GUIDE
+## 6. CODE STATUS (post-implementation)
 
-The following files exist at `/home/claude/mt5_ichimoku/` and `/mnt/user-data/outputs/mt5_ichimoku/`. Audit each before rewriting.
+All files from the original plan have been implemented, tested, and are in production.
 
-### Files with high reuse value
+| File | Status | Notes |
+|------|--------|-------|
+| `core/config_loader.py` | ✅ Complete | All v3 fields + `SignalScoringConfig` + `ValidationConfig` + `HealthMonitorConfig` + `NewsFilterConfig` |
+| `core/ichimoku_calculator.py` | ✅ Complete | Frozen `IchimokuValues` dataclass + `is_chikou_clear()` (high-low range) + `pip_size()` |
+| `core/signal_engine.py` | ✅ Complete | 4 modes + signal scoring (6 weights) + `classify_signal_strength()` + `check_exit()` |
+| `core/mt5_connector.py` | ✅ Complete | Sim fallback with `force_sim=True`, `get_deal_history()` implemented |
+| `core/risk_manager.py` | ✅ Complete | Split into `RiskGuard` + `LotCalculator` + `SLTPBuilder` + `BreakEvenManager` |
+| `core/news_filter.py` | ✅ Complete | Delegates to `news_calendar.py`, uses `data/news_events.json` (static calendar) |
+| `core/health_monitor.py` | ✅ Complete | Tick gaps, consecutive errors, Discord alerts with cooldown |
+| `core/adversarial_validator.py` | ✅ Complete | 3 critics → RTR score, `ValidationMetrics` thread-safe counters |
+| `core/momentum.py` | ✅ Complete | RSI, ADX, EMA alignment, ATR consistency → 0–100 score |
+| `utils/keep_alive.py` | ✅ Complete | Background ping thread for Render free tier |
+| `utils/dashboard_server.py` | ✅ Complete | FastAPI + WebSocket, `/api/health`, `/api/validation/metrics` |
+| `trade_bot.py` | ✅ Complete | Full orchestrator: all filters, scoring, validation wired in |
 
-| File | Status | What to reuse |
-|------|--------|---------------|
-| `core/config_loader.py` | ✅ Good base | All dataclass definitions, validation logic, `_print_summary()`. **Add** new v3 fields: `signal_mode`, `exit_conditions`, `session_filter`, `news_filter`, `lot_mode`, `break_even`, `trail_step_pips`, `buffer_pips`, `use_virtual_tp`, `log_trades_csv`. |
-| `core/ichimoku_engine.py` | ⚠️ Partial | `_midpoint()` static method is correct. Cloud computation logic is correct. **Remove** `_evaluate_signal()` — replace with `SignalEngine` that routes to mode-specific logic. **Add** `CandleCloseGuard` enforcement. |
-| `core/mt5_connector.py` | ✅ Good base | `connect()`, `disconnect()`, `get_account_info()`, `get_open_positions()`, `get_symbol_info()`, `send_order()`, `close_position()`, `modify_sl()`, `_simulate_bars()`. Add `get_deal_history()` method for TradeEventListener. |
-| `core/risk_manager.py` | ⚠️ Partial | `can_trade()`, `check_goal_reached()`, `record_trade_close()`, `_calc_atr()`, `_round_lot()`. **Split** into separate `LotCalculator`, `SLTPBuilder`, `RiskGuard`, `BreakEvenManager`. |
-| `utils/state.py` | ✅ Reuse | Add `verification_stats` dict to track CORRECT/INCORRECT counts. |
-| `utils/dashboard_server.py` | ✅ Reuse | Add verification stats panel to HTML. |
-| `utils/logger.py` | ✅ Reuse as-is | No changes needed. |
-| `trade_bot.py` | ⚠️ Restructure | Main loop logic is correct. Needs `CandleCloseGuard`, `SessionFilter`, `ActionVerifier` wired in. |
-| `config/strategy_config.json` | ❌ Outdated | Replace entirely with v3 schema above. |
-
-### Files to discard
-- `config_parser.py` — duplicate of config_loader, older version
-- `ichimoku.py` — older standalone script, superseded by `core/ichimoku_engine.py`
-- `main.py` — older entry point, superseded by `trade_bot.py`
-- `mt5_bridge.py` — older standalone, superseded by `core/mt5_connector.py`
-- `risk_manager.py` (root level) — duplicate of `core/risk_manager.py`
-- `strategy.json` — old config, replaced by v3 schema
+Legacy files (`config_parser.py`, `ichimoku.py`, `main.py`, `mt5_bridge.py`, root `risk_manager.py`, `strategy.json`) have been removed.
 
 ---
 
-## 7. COMPLETE FILE MAP — TARGET STATE
+## 7. COMPLETE FILE MAP — CURRENT STATE
 
-Every file that must exist in the final implementation:
+All files are implemented and tested:
 
 ```
-mt5_ichimoku/
+Colpo_Groso_BFC/
 │
 ├── config/
 │   └── strategy_config.json          # v3 schema — all parameters
 │
 ├── core/
-│   ├── config_loader.py              # Parse JSON → typed Config dataclasses. Validate all fields.
-│   ├── candle_close_guard.py         # NEW: strip live bar, track last processed bar timestamp per symbol
-│   ├── mt5_connector.py              # MT5 bridge + simulation fallback. Add get_deal_history().
-│   ├── trade_event_listener.py       # NEW: poll MT5 deal history for fills/closes, trigger ActionVerifier
-│   ├── ichimoku_calculator.py        # Pure math: 5 components. Returns IchimokuValues snapshot.
-│   ├── signal_engine.py              # NEW: route to tk_cross/chikou_cross/kumo_breakout/full_confirm
-│   ├── trend_filter.py               # D1 cloud direction check (price vs cloud on D1)
-│   ├── session_filter.py             # NEW: UTC hour window + Friday filter
-│   ├── news_filter.py                # NEW (optional): pause on high-impact news
-│   ├── lot_calculator.py             # NEW: risk_pct / fixed / compound lot sizing. JPY-aware.
-│   ├── sltp_builder.py               # NEW: SL and TP calculation for all methods + buffer
-│   ├── risk_manager.py               # REFACTORED: RiskGuard only (goal, drawdown, daily loss, can_trade)
-│   ├── break_even_manager.py         # NEW: check + apply break-even on open positions
-│   ├── position_manager.py           # NEW: trailing stop, virtual TP, Ichimoku exit conditions
-│   ├── order_executor.py             # Send orders with retry. Magic number on all requests.
-│   └── action_verifier.py            # NEW: post-close scoring CORRECT/INCORRECT + classify failure type
+│   ├── config_loader.py              # Parse JSON → typed Config dataclasses + validation
+│   ├── candle_close_guard.py         # Strip live bar, track last processed bar per symbol
+│   ├── mt5_connector.py              # MT5 bridge + simulation fallback (force_sim=True in tests)
+│   ├── trade_event_listener.py       # Poll MT5 deal history, trigger ActionVerifier
+│   ├── indicator.py                  # Shared: pure-pandas Ichimoku calculator
+│   ├── ichimoku_calculator.py        # Frozen IchimokuValues + is_chikou_clear() + pip_size()
+│   ├── signal_engine.py              # 4 modes + signal scoring + classify_signal_strength()
+│   ├── trend_filter.py               # D1 cloud direction check
+│   ├── session_filter.py             # UTC hour window + Friday filter
+│   ├── news_filter.py                # Static calendar blackout (delegates to news_calendar.py)
+│   ├── news_calendar.py              # Recurring + specific date event matching
+│   ├── lot_calculator.py             # risk_pct / fixed / compound, JPY-aware
+│   ├── sltp_builder.py               # SL/TP for kijun, ATR, cloud_edge, fixed_pips
+│   ├── risk_manager.py               # RiskGuard (goal, drawdown, daily loss, can_trade)
+│   ├── break_even_manager.py         # Move SL to entry after trigger_pips profit
+│   ├── position_manager.py           # Trailing stop + ichimoku exit conditions
+│   ├── order_executor.py             # Send orders with retry + magic number isolation
+│   ├── action_verifier.py            # Post-close scoring + failure classification + quality checks
+│   ├── health_monitor.py             # Tick gaps, error tracking, Discord alerts with cooldown
+│   ├── adversarial_validator.py      # 3 critics → RTR score (optional, disabled by default)
+│   └── momentum.py                   # RSI, ADX, EMA, ATR → 0-100 score (optional)
+│
+├── data/
+│   └── news_events.json              # FOMC, NFP, ECB, BOJ dates for news filter
 │
 ├── utils/
-│   ├── logger.py                     # Logging setup from config
+│   ├── logger.py                     # Loguru setup from config
 │   ├── trade_logger.py               # Write/append trades.csv
-│   ├── failed_action_logger.py       # NEW: write/append failed_actions.csv
-│   ├── state.py                      # Thread-safe shared state (add verification_stats)
-│   └── dashboard_server.py           # FastAPI + WebSocket HTML dashboard
+│   ├── failed_action_logger.py       # Write/append failed_actions.csv (filelock)
+│   ├── state.py                      # Thread-safe BotState (threading.Lock)
+│   ├── dashboard_server.py           # FastAPI + WebSocket + /api/health + /api/validation/metrics
+│   ├── state_pusher.py               # Push state to remote dashboard
+│   ├── keep_alive.py                 # Background ping for Render free tier
+│   └── verify_deploy.py              # Screenshot + health check verification
 │
 ├── logs/                             # Auto-created on first run
 │   ├── bot.log                       # Rotating log file
@@ -567,9 +601,9 @@ class SessionFilter:
 
 ---
 
-## 9. BUILD ORDER
+## 9. BUILD ORDER (completed)
 
-Implement in this exact sequence. Each phase must be independently testable before moving to the next.
+All phases have been implemented and tested. Original build order preserved for reference:
 
 | Phase | Files | Test Milestone |
 |-------|-------|----------------|
@@ -661,4 +695,4 @@ All data pushed via WebSocket every 2 seconds from `BotState.snapshot()`.
 
 ---
 
-*End of handoff document — Architecture Plan v3.0*
+*End of handoff document — Architecture Reference v3.0 (implementation complete)*

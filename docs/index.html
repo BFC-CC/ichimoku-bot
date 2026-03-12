@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IchiBot v3 — Documentation</title>
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --surface: #1a1a2e;
+    --surface2: #16213e;
+    --border: #0f3460;
+    --accent: #00d4ff;
+    --accent2: #00ff88;
+    --text: #e0e0e0;
+    --text-muted: #888;
+    --red: #ff4444;
+    --orange: #ffaa00;
+    --code-bg: #0d1117;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  nav {
+    width: 260px;
+    min-height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    position: fixed;
+    overflow-y: auto;
+  }
+  nav .logo {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    padding: 0 24px 20px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Consolas', 'Monaco', monospace;
+  }
+  nav .logo span { color: var(--text-muted); font-weight: 400; font-size: 12px; display: block; }
+  nav ul { list-style: none; margin-top: 16px; }
+  nav ul li a {
+    display: block;
+    padding: 10px 24px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+  }
+  nav ul li a:hover { color: var(--text); background: var(--surface2); }
+  nav ul li a.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: var(--surface2);
+  }
+  nav .section-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    padding: 20px 24px 6px;
+  }
+
+  /* ── Main ── */
+  main {
+    margin-left: 260px;
+    flex: 1;
+    padding: 48px 64px;
+    max-width: 960px;
+  }
+
+  h1 {
+    font-size: 32px;
+    color: var(--accent);
+    margin-bottom: 8px;
+    font-weight: 700;
+  }
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 16px;
+    margin-bottom: 40px;
+  }
+
+  h2 {
+    font-size: 22px;
+    color: var(--accent);
+    margin: 40px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 {
+    font-size: 16px;
+    color: var(--accent2);
+    margin: 24px 0 8px;
+  }
+
+  p { margin-bottom: 14px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ── Cards ── */
+  .cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 24px 0;
+  }
+  .card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card h3 { margin: 0 0 8px; color: var(--accent); }
+  .card p { color: var(--text-muted); font-size: 14px; margin: 0; }
+  .card .tag {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-top: 12px;
+    font-weight: 600;
+  }
+  .tag.v1 { background: #1a3a1a; color: var(--accent2); }
+  .tag.v3 { background: #1a2a3a; color: var(--accent); }
+  .tag.shared { background: #2a2a1a; color: var(--orange); }
+
+  /* ── Tables ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  th, td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    color: var(--accent);
+    font-weight: 600;
+    background: var(--surface2);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  tr:hover td { background: var(--surface); }
+
+  /* ── Code ── */
+  code {
+    font-family: 'Consolas', 'Monaco', 'Fira Code', monospace;
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--accent2);
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    margin: 16px 0;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  pre code { background: none; padding: 0; color: var(--text); }
+
+  /* ── Badges ── */
+  .badge-row {
+    display: flex;
+    gap: 12px;
+    margin: 16px 0;
+    flex-wrap: wrap;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .badge .num { color: var(--accent); font-weight: 700; }
+
+  /* ── Status ── */
+  .status {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+  .status.green { background: var(--accent2); }
+  .status.blue { background: var(--accent); }
+  .status.orange { background: var(--orange); }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    nav { display: none; }
+    main { margin-left: 0; padding: 24px; }
+    .cards { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">
+    IchiBot v3
+    <span>Documentation</span>
+  </div>
+  <div class="section-label">Overview</div>
+  <ul>
+    <li><a href="index.html" class="active">Home</a></li>
+    <li><a href="architecture.html">Architecture</a></li>
+  </ul>
+  <div class="section-label">Guides</div>
+  <ul>
+    <li><a href="tool_usage_guide.html">Tool &amp; CLI Usage</a></li>
+    <li><a href="deploy_guide.html">Deployment</a></li>
+  </ul>
+  <div class="section-label">Reference</div>
+  <ul>
+    <li><a href="configuration.html">Configuration</a></li>
+  </ul>
+</nav>
+
+<main>
+  <h1>IchiBot v3 Documentation</h1>
+  <p class="subtitle">Ichimoku Kinko Hyo Forex Trading System</p>
+
+  <div class="badge-row">
+    <div class="badge">Python <span class="num">3.10+</span></div>
+    <div class="badge">Tests <span class="num">375</span></div>
+    <div class="badge">Signal Modes <span class="num">4</span></div>
+    <div class="badge">Pairs <span class="num">8</span></div>
+  </div>
+
+  <h2>Two Coexisting Systems</h2>
+  <p>This repository contains two independent trading systems that share the core Ichimoku calculation engine (<code>core/indicator.py</code>) and candle buffer (<code>core/candle_buffer.py</code>) but are otherwise fully separate.</p>
+
+  <div class="cards">
+    <a href="architecture.html#v1" class="card" style="text-decoration:none">
+      <h3>Signal Bot (v1)</h3>
+      <p>Discord notification bot. Detects 6 Ichimoku signal types across multiple pairs and timeframes. Sends rich embeds with cloud filter and cooldown management.</p>
+      <span class="tag v1">bot.py + config.yaml</span>
+    </a>
+    <a href="architecture.html#v3" class="card" style="text-decoration:none">
+      <h3>Trading Bot (v3)</h3>
+      <p>Fully automated trade execution. 4 signal modes, signal scoring, risk management, position lifecycle (break-even, trailing stop, ichimoku exits), and a live FastAPI dashboard.</p>
+      <span class="tag v3">trade_bot.py + strategy_config.json</span>
+    </a>
+  </div>
+
+  <h2>Quick Start</h2>
+
+  <h3>Install &amp; Test</h3>
+  <pre><code>bash setup_env.sh          # or: pip install -r requirements.txt
+source venv/bin/activate
+pytest tests/ -v           # 375 tests, no MT5 required</code></pre>
+
+  <h3>Signal Bot (v1)</h3>
+  <pre><code>cp .env.example .env       # add DISCORD_WEBHOOK_URL
+python bot.py              # dry_run=true by default
+python bot.py --dry-run    # force dry run</code></pre>
+
+  <h3>Trading Bot (v3)</h3>
+  <pre><code>python trade_bot.py --sim --once    # single sim cycle (test)
+python trade_bot.py --sim           # continuous sim mode
+python trade_bot.py                 # live (uses MT5)</code></pre>
+  <p>Dashboard starts automatically at <code>http://localhost:8000</code></p>
+
+  <h2>Feature Matrix</h2>
+
+  <table>
+    <tr><th>Feature</th><th>Signal Bot (v1)</th><th>Trading Bot (v3)</th></tr>
+    <tr><td>Signal detection</td><td>6 types (up/down pairs)</td><td>4 modes (configurable)</td></tr>
+    <tr><td>Trade execution</td><td>&#x2717;</td><td>Full lifecycle</td></tr>
+    <tr><td>Risk management</td><td>&#x2717;</td><td>Max trades, daily loss, drawdown</td></tr>
+    <tr><td>Position management</td><td>&#x2717;</td><td>Break-even, trailing stop, exits</td></tr>
+    <tr><td>Signal scoring</td><td>&#x2717;</td><td>6-component weighted (0-1)</td></tr>
+    <tr><td>News filter</td><td>&#x2717;</td><td>Static calendar blackout</td></tr>
+    <tr><td>Health monitoring</td><td>&#x2717;</td><td>Tick gaps, errors, alerts</td></tr>
+    <tr><td>Dashboard</td><td>Streamlit (port 8501)</td><td>FastAPI (port 8000)</td></tr>
+    <tr><td>Notifications</td><td>Discord embeds</td><td>Execution logs</td></tr>
+    <tr><td>Config format</td><td>YAML</td><td>JSON</td></tr>
+    <tr><td>Backtest</td><td>Built-in engine</td><td>&#x2717;</td></tr>
+  </table>
+
+  <h2>Documentation Pages</h2>
+
+  <div class="cards">
+    <a href="architecture.html" class="card" style="text-decoration:none">
+      <h3>Architecture</h3>
+      <p>System design, pipeline flow, component relationships, and file map for both v1 and v3 systems.</p>
+      <span class="tag shared">Reference</span>
+    </a>
+    <a href="tool_usage_guide.html" class="card" style="text-decoration:none">
+      <h3>Tool &amp; CLI Usage</h3>
+      <p>All command-line flags, environment variables, test commands, backtest options, and dashboard endpoints.</p>
+      <span class="tag shared">Guide</span>
+    </a>
+    <a href="deploy_guide.html" class="card" style="text-decoration:none">
+      <h3>Deployment Guide</h3>
+      <p>Local setup, Render deployment, Docker, MT5 on Linux/Wine, keep-alive configuration, and verification.</p>
+      <span class="tag v3">Guide</span>
+    </a>
+    <a href="configuration.html" class="card" style="text-decoration:none">
+      <h3>Configuration Reference</h3>
+      <p>Complete schema for strategy_config.json and config.yaml. Every field documented with types, defaults, and validation rules.</p>
+      <span class="tag shared">Reference</span>
+    </a>
+  </div>
+
+</main>
+</body>
+</html>

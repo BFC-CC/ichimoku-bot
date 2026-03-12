@@ -14,6 +14,7 @@ from typing import Optional
 from loguru import logger
 
 from core.config_loader import Config
+from core.ichimoku_calculator import pip_size
 from core.mt5_connector import MT5Connector
 from utils.failed_action_logger import FailedActionLogger, FailedActionRecord
 
@@ -99,6 +100,59 @@ class ActionVerifier:
         return VerificationResult(
             result=result_str, failure_type=failure_type, pnl=closed_trade.pnl
         )
+
+    def verify_trade_quality(self, trade_context: dict) -> float:
+        """
+        Score post-trade execution quality from 0-1.
+
+        Input keys: expected_price, execution_price, requested_volume,
+                    filled_volume, spread_pips, symbol
+
+        Three sub-scores averaged:
+        - Slippage vs max_slippage_pips
+        - Fill ratio vs min_fill_ratio
+        - Spread vs max_spread_pips
+        """
+        qc = self.cfg.validation.quality_checks
+
+        symbol = trade_context.get("symbol", "EURUSD")
+        ps = pip_size(symbol)
+
+        # Slippage sub-score
+        expected = trade_context.get("expected_price", 0.0)
+        execution = trade_context.get("execution_price", 0.0)
+        slippage_pips = abs(expected - execution) / ps if ps > 0 else 0.0
+        if qc.max_slippage_pips > 0:
+            slippage_score = max(1.0 - slippage_pips / qc.max_slippage_pips, 0.0)
+        else:
+            slippage_score = 1.0
+
+        # Fill ratio sub-score
+        requested = trade_context.get("requested_volume", 0.0)
+        filled = trade_context.get("filled_volume", 0.0)
+        fill_ratio = filled / requested if requested > 0 else 1.0
+        if qc.min_fill_ratio > 0:
+            fill_score = min(fill_ratio / qc.min_fill_ratio, 1.0)
+        else:
+            fill_score = 1.0
+
+        # Spread sub-score
+        spread = trade_context.get("spread_pips", 0.0)
+        if qc.max_spread_pips > 0:
+            spread_score = max(1.0 - spread / qc.max_spread_pips, 0.0)
+        else:
+            spread_score = 1.0
+
+        for name, sub_score in [("slippage", slippage_score),
+                                 ("fill_ratio", fill_score),
+                                 ("spread", spread_score)]:
+            if sub_score < 0.7:
+                logger.warning(
+                    f"Trade quality warning ({symbol}): {name} score={sub_score:.2f}"
+                )
+
+        quality = (slippage_score + fill_score + spread_score) / 3.0
+        return round(quality, 4)
 
     def _classify_failure(self, trade: ClosedTrade) -> str:
         """Classify the failure type (checked in order)."""

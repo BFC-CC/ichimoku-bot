@@ -43,7 +43,7 @@ class TestFailedActionLogger:
         assert len(rows) == 4  # 1 header + 3 data rows
 
     def test_correct_columns_count(self, tmp_path):
-        assert len(COLUMNS) == 29
+        assert len(COLUMNS) == 32
 
     def test_float_formatting(self, tmp_path):
         logger = FailedActionLogger(str(tmp_path))

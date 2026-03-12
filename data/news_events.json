@@ -1,0 +1,68 @@
+{
+  "recurring_monthly": [
+    {
+      "name": "US Non-Farm Payrolls",
+      "currency": "USD",
+      "rule": "first_friday",
+      "time_utc": "13:30",
+      "impact": "high"
+    },
+    {
+      "name": "US CPI",
+      "currency": "USD",
+      "rule": "mid_month",
+      "day_range": [10, 15],
+      "time_utc": "13:30",
+      "impact": "high"
+    },
+    {
+      "name": "ECB Interest Rate Decision",
+      "currency": "EUR",
+      "rule": "mid_month",
+      "day_range": [10, 18],
+      "time_utc": "13:15",
+      "impact": "high"
+    },
+    {
+      "name": "BOE Interest Rate Decision",
+      "currency": "GBP",
+      "rule": "mid_month",
+      "day_range": [1, 10],
+      "time_utc": "12:00",
+      "impact": "high"
+    },
+    {
+      "name": "RBA Interest Rate Decision",
+      "currency": "AUD",
+      "rule": "first_tuesday",
+      "time_utc": "03:30",
+      "impact": "high"
+    },
+    {
+      "name": "BOC Interest Rate Decision",
+      "currency": "CAD",
+      "rule": "mid_month",
+      "day_range": [5, 15],
+      "time_utc": "14:45",
+      "impact": "high"
+    }
+  ],
+  "specific_dates": [
+    {"name": "FOMC Rate Decision", "currency": "USD", "date": "2026-01-28", "time_utc": "19:00", "impact": "high"},
+    {"name": "FOMC Rate Decision", "currency": "USD", "date": "2026-03-18", "time_utc": "19:00", "impact": "high"},
+    {"name": "FOMC Rate Decision", "currency": "USD", "date": "2026-05-06", "time_utc": "19:00", "impact": "high"},
+    {"name": "FOMC Rate Decision", "currency": "USD", "date": "2026-06-17", "time_utc": "19:00", "impact": "high"},
+    {"name": "FOMC Rate Decision", "currency": "USD", "date": "2026-07-29", "time_utc": "19:00", "impact": "high"},
+    {"name": "FOMC Rate Decision", "currency": "USD", "date": "2026-09-16", "time_utc": "19:00", "impact": "high"},
+    {"name": "FOMC Rate Decision", "currency": "USD", "date": "2026-11-04", "time_utc": "19:00", "impact": "high"},
+    {"name": "FOMC Rate Decision", "currency": "USD", "date": "2026-12-16", "time_utc": "19:00", "impact": "high"},
+    {"name": "BOJ Rate Decision", "currency": "JPY", "date": "2026-01-24", "time_utc": "03:00", "impact": "high"},
+    {"name": "BOJ Rate Decision", "currency": "JPY", "date": "2026-03-13", "time_utc": "03:00", "impact": "high"},
+    {"name": "BOJ Rate Decision", "currency": "JPY", "date": "2026-04-28", "time_utc": "03:00", "impact": "high"},
+    {"name": "BOJ Rate Decision", "currency": "JPY", "date": "2026-06-16", "time_utc": "03:00", "impact": "high"},
+    {"name": "BOJ Rate Decision", "currency": "JPY", "date": "2026-07-15", "time_utc": "03:00", "impact": "high"},
+    {"name": "BOJ Rate Decision", "currency": "JPY", "date": "2026-09-17", "time_utc": "03:00", "impact": "high"},
+    {"name": "BOJ Rate Decision", "currency": "JPY", "date": "2026-10-29", "time_utc": "03:00", "impact": "high"},
+    {"name": "BOJ Rate Decision", "currency": "JPY", "date": "2026-12-18", "time_utc": "03:00", "impact": "high"}
+  ]
+}

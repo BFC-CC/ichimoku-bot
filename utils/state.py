@@ -21,6 +21,7 @@ class SignalSnapshot:
     kijun: float = 0.0
     cloud_position: str = ""
     cloud_thickness: float = 0.0
+    score: float = 1.0
 
 
 @dataclass
@@ -58,6 +59,7 @@ class BotSnapshot:
     timestamp: str = ""
     is_halted: bool = False
     halt_reason: str = ""
+    health_metrics: Dict[str, Any] = field(default_factory=dict)
 
 
 class BotState:
@@ -79,6 +81,8 @@ class BotState:
         self._log_lines: List[str] = []
         self._is_halted: bool = False
         self._halt_reason: str = ""
+        self._health_metrics: Dict[str, Any] = {}
+        self._validation_metrics: Dict[str, Any] = {}
 
     def update_account(self, balance: float, equity: float) -> None:
         with self._lock:
@@ -123,6 +127,14 @@ class BotState:
             self._is_halted = halted
             self._halt_reason = reason
 
+    def update_health_metrics(self, metrics: Dict[str, Any]) -> None:
+        with self._lock:
+            self._health_metrics = dict(metrics)
+
+    def update_validation_metrics(self, metrics: Dict[str, Any]) -> None:
+        with self._lock:
+            self._validation_metrics = dict(metrics)
+
     def snapshot(self) -> BotSnapshot:
         """Create an immutable snapshot for the dashboard."""
         with self._lock:
@@ -146,4 +158,5 @@ class BotState:
                 timestamp=datetime.now(timezone.utc).isoformat(),
                 is_halted=self._is_halted,
                 halt_reason=self._halt_reason,
+                health_metrics=dict(self._health_metrics),
             )

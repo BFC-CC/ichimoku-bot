@@ -24,17 +24,31 @@
       "require_tenkan_above_kijun": true,
       "require_chikou_clear": true,
       "require_bullish_cloud": true,
-      "require_future_cloud_bullish": false
+      "require_future_cloud_bullish": true
     },
 
     "exit_conditions": {
       "exit_on_tk_cross_against": true,
-      "exit_on_price_enter_cloud": false,
-      "exit_on_chikou_cross_down": false
+      "exit_on_price_enter_cloud": true,
+      "exit_on_chikou_cross_down": true
     },
 
     "cloud_min_thickness_pips": 5,
-    "use_virtual_tp": false
+    "use_virtual_tp": false,
+
+    "signal_scoring": {
+      "enabled": true,
+      "min_score_threshold": 0.5,
+      "scale_lot_by_score": true,
+      "weights": {
+        "tk_alignment": 0.15,
+        "price_vs_cloud": 0.20,
+        "chikou_clear": 0.20,
+        "cloud_direction": 0.15,
+        "cloud_thickness": 0.10,
+        "trend_filter": 0.20
+      }
+    }
   },
 
   "pairs": ["EURUSD","GBPUSD","USDJPY","AUDUSD","USDCAD","EURGBP","NZDUSD","EURJPY"],
@@ -52,10 +66,12 @@
   },
 
   "news_filter": {
-    "enabled": false,
+    "enabled": true,
     "minutes_before": 30,
     "minutes_after": 30,
-    "impact_levels": ["high"]
+    "impact_levels": ["high"],
+    "calendar_source": "static",
+    "static_events_path": "data/news_events.json"
   },
 
   "risk_management": {
@@ -120,6 +136,33 @@
   "dashboard": {
     "enabled": true,
     "host": "0.0.0.0",
-    "port": 8000
+    "port": 8000,
+    "keep_alive_url": "",
+    "keep_alive_interval_sec": 600
+  },
+
+  "health_monitor": {
+    "enabled": true,
+    "max_tick_gap_sec": 300,
+    "max_consecutive_errors": 3,
+    "alert_cooldown_sec": 900,
+    "heartbeat_interval_sec": 3600
+  },
+
+  "validation": {
+    "adversarial_validation": true,
+    "min_rtr_score": 0.6,
+    "momentum_scoring": true,
+    "strength_classification": true,
+    "quality_checks": {
+      "max_slippage_pips": 3.0,
+      "min_fill_ratio": 0.95,
+      "max_spread_pips": 5.0
+    },
+    "strength_lot_multiplier": {
+      "STRONG": 1.0,
+      "MODERATE": 0.7,
+      "WEAK": 0.4
+    }
   }
 }

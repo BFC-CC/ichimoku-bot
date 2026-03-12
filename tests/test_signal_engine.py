@@ -134,7 +134,10 @@ class TestChikouCross:
 
 class TestKumoBreakout:
     def test_buy_breakout(self):
-        cfg = IchimokuConfig(signal_mode="kumo_breakout")
+        cfg = IchimokuConfig(
+            signal_mode="kumo_breakout",
+            entry_conditions=EntryConditions(require_chikou_clear=False),
+        )
         engine = SignalEngine(cfg)
         # prev close was inside/below cloud, now above
         ichi = _make_ichi(
@@ -149,7 +152,10 @@ class TestKumoBreakout:
         assert result.mode_used == "kumo_breakout"
 
     def test_sell_breakout(self):
-        cfg = IchimokuConfig(signal_mode="kumo_breakout")
+        cfg = IchimokuConfig(
+            signal_mode="kumo_breakout",
+            entry_conditions=EntryConditions(require_chikou_clear=False),
+        )
         engine = SignalEngine(cfg)
         ichi = _make_ichi(
             prev_close=1.1030, close=1.0900,

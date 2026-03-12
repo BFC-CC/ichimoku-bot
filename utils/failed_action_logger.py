@@ -26,6 +26,7 @@ COLUMNS = [
     "d1_cloud_direction", "d1_price_vs_cloud", "session_utc_hour",
     "conditions_met", "risk_reward_planned", "risk_reward_actual",
     "account_balance_at_entry", "drawdown_pct_at_entry", "notes",
+    "validation_layer", "rtr_score", "momentum_score",
 ]
 
 
@@ -60,6 +61,9 @@ class FailedActionRecord:
     account_balance_at_entry: float = 0.0
     drawdown_pct_at_entry: float = 0.0
     notes: str = ""
+    validation_layer: str = ""
+    rtr_score: float = 0.0
+    momentum_score: float = 0.0
 
 
 class FailedActionLogger:

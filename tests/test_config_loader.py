@@ -200,3 +200,37 @@ class TestConfigLoaderInvalid:
     def test_file_not_found(self):
         with pytest.raises(FileNotFoundError):
             ConfigLoader.load("/tmp/nonexistent_config.json")
+
+
+class TestValidationConfig:
+    def test_validation_parsed(self):
+        raw = _valid_raw()
+        raw["validation"] = {
+            "adversarial_validation": True,
+            "min_rtr_score": 0.7,
+            "momentum_scoring": True,
+            "strength_classification": True,
+            "quality_checks": {
+                "max_slippage_pips": 2.0,
+                "min_fill_ratio": 0.9,
+                "max_spread_pips": 4.0,
+            },
+            "strength_lot_multiplier": {
+                "STRONG": 1.0, "MODERATE": 0.5, "WEAK": 0.3,
+            },
+        }
+        cfg = ConfigLoader.load(_write_config(raw))
+        assert cfg.validation.adversarial_validation is True
+        assert cfg.validation.min_rtr_score == 0.7
+        assert cfg.validation.momentum_scoring is True
+        assert cfg.validation.quality_checks.max_slippage_pips == 2.0
+        assert cfg.validation.strength_lot_multiplier["MODERATE"] == 0.5
+
+    def test_missing_validation_defaults(self):
+        raw = _valid_raw()
+        # No "validation" key at all
+        cfg = ConfigLoader.load(_write_config(raw))
+        assert cfg.validation.adversarial_validation is False
+        assert cfg.validation.min_rtr_score == 0.6
+        assert cfg.validation.momentum_scoring is False
+        assert cfg.validation.quality_checks.max_slippage_pips == 3.0

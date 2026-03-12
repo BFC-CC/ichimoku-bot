@@ -41,9 +41,13 @@ class LotCalculator:
         sl: float,
         symbol: str,
         symbol_info: SymbolInfo | None = None,
+        signal_score: float = 1.0,
     ) -> float:
         """
         Calculate lot size based on configured lot_mode.
+
+        When signal_score < 1.0 and lot_mode is not "fixed", risk_amount
+        is scaled down proportionally.
 
         Returns the lot size rounded to volume_step and clamped.
         """
@@ -63,6 +67,7 @@ class LotCalculator:
             return info.volume_min
 
         risk_amount = balance * self.cfg.risk_per_trade_pct / 100.0
+        risk_amount *= max(signal_score, 0.1)  # floor at 10% to avoid zero lots
         lot_size = risk_amount / (risk_pips * pip_value_per_lot)
 
         lot_size = self._round_to_step(lot_size, info.volume_step)

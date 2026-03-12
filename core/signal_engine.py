@@ -17,7 +17,7 @@ import pandas as pd
 from loguru import logger
 
 from core.config_loader import IchimokuConfig
-from core.ichimoku_calculator import IchimokuValues, pip_size
+from core.ichimoku_calculator import IchimokuValues, pip_size, is_chikou_clear
 
 
 class Signal(Enum):
@@ -34,6 +34,50 @@ class SignalResult:
     conditions_met: dict[str, bool] = field(default_factory=dict)
     bar_time: Optional[pd.Timestamp] = None
     ichi: Optional[IchimokuValues] = None
+    score: float = 1.0
+    score_breakdown: dict[str, float] = field(default_factory=dict)
+    strength: str = ""
+    momentum_score: float = 0.0
+
+
+def classify_signal_strength(
+    signal_score: float,
+    momentum_score: float,
+    conditions_met: dict[str, bool],
+) -> str:
+    """
+    Classify signal as STRONG / MODERATE / WEAK based on a point system.
+
+    Points:
+    - price_above_cloud / price_below_cloud True: +2
+    - chikou_clear / chikou_clearance True: +2
+    - tk_cross_occurred True: +1; if also tk_above_kijun / tk_below_kijun: +1
+    - momentum > 70: +2; > 50: +1
+    - Sum >= 6: STRONG, >= 3: MODERATE, else: WEAK
+    """
+    pts = 0
+
+    if conditions_met.get("price_above_cloud") or conditions_met.get("price_below_cloud"):
+        pts += 2
+
+    if conditions_met.get("chikou_clear") or conditions_met.get("chikou_clearance"):
+        pts += 2
+
+    if conditions_met.get("tk_cross_occurred"):
+        pts += 1
+        if conditions_met.get("tk_above_kijun") or conditions_met.get("tk_below_kijun"):
+            pts += 1
+
+    if momentum_score > 70:
+        pts += 2
+    elif momentum_score > 50:
+        pts += 1
+
+    if pts >= 6:
+        return "STRONG"
+    if pts >= 3:
+        return "MODERATE"
+    return "WEAK"
 
 
 class SignalEngine:
@@ -108,10 +152,11 @@ class SignalEngine:
         buy_signal = tk_cross_up and price_above_cloud
 
         if entry.require_chikou_clear:
-            chikou_ref = self._get_chikou_ref(df)
-            chikou_clear = ichi.chikou > chikou_ref if chikou_ref is not None else True
-            conditions["chikou_clear"] = chikou_clear
-            buy_signal = buy_signal and chikou_clear
+            clear, _margin = is_chikou_clear(
+                df, "BUY", self.cfg.displacement, entry.chikou_clear_lookback
+            )
+            conditions["chikou_clear"] = clear
+            buy_signal = buy_signal and clear
 
         if entry.require_bullish_cloud:
             bullish_cloud = ichi.senkou_a > ichi.senkou_b
@@ -120,11 +165,13 @@ class SignalEngine:
 
         if buy_signal:
             reasons = [k for k, v in conditions.items() if v]
-            return SignalResult(
+            result = SignalResult(
                 signal=Signal.BUY, mode_used="tk_cross",
                 reasons=reasons, conditions_met=conditions,
                 bar_time=ichi.bar_time, ichi=ichi,
             )
+            self._apply_score(result, ichi, df, "BUY")
+            return result
 
         # SELL check (mirror)
         tk_bear = ichi.tenkan < ichi.kijun
@@ -140,10 +187,11 @@ class SignalEngine:
         sell_signal = tk_cross_dn and price_below_cloud
 
         if entry.require_chikou_clear:
-            chikou_ref = self._get_chikou_ref(df)
-            chikou_clear_sell = ichi.chikou < chikou_ref if chikou_ref is not None else True
-            sell_conditions["chikou_clear"] = chikou_clear_sell
-            sell_signal = sell_signal and chikou_clear_sell
+            clear, _margin = is_chikou_clear(
+                df, "SELL", self.cfg.displacement, entry.chikou_clear_lookback
+            )
+            sell_conditions["chikou_clear"] = clear
+            sell_signal = sell_signal and clear
 
         if entry.require_bullish_cloud:
             bearish_cloud = ichi.senkou_a < ichi.senkou_b
@@ -152,11 +200,13 @@ class SignalEngine:
 
         if sell_signal:
             reasons = [k for k, v in sell_conditions.items() if v]
-            return SignalResult(
+            result = SignalResult(
                 signal=Signal.SELL, mode_used="tk_cross",
                 reasons=reasons, conditions_met=sell_conditions,
                 bar_time=ichi.bar_time, ichi=ichi,
             )
+            self._apply_score(result, ichi, df, "SELL")
+            return result
 
         return SignalResult(
             signal=Signal.NEUTRAL, mode_used="tk_cross",
@@ -181,13 +231,25 @@ class SignalEngine:
             "price_above_cloud": price_above_cloud,
         }
 
-        if chikou_cross_up and price_above_cloud:
-            return SignalResult(
+        buy_signal = chikou_cross_up and price_above_cloud
+
+        entry = self.cfg.entry_conditions
+        if buy_signal and entry.require_chikou_clear:
+            clear, _ = is_chikou_clear(
+                df, "BUY", self.cfg.displacement, entry.chikou_clear_lookback
+            )
+            conditions["chikou_clearance"] = clear
+            buy_signal = buy_signal and clear
+
+        if buy_signal:
+            result = SignalResult(
                 signal=Signal.BUY, mode_used="chikou_cross",
                 reasons=[k for k, v in conditions.items() if v],
                 conditions_met=conditions,
                 bar_time=ichi.bar_time, ichi=ichi,
             )
+            self._apply_score(result, ichi, df, "BUY")
+            return result
 
         # SELL: chikou crosses below close[-26]
         chikou_cross_dn = ichi.chikou < chikou_ref and ichi.prev_chikou >= prev_chikou_ref
@@ -198,13 +260,24 @@ class SignalEngine:
             "price_below_cloud": price_below_cloud,
         }
 
-        if chikou_cross_dn and price_below_cloud:
-            return SignalResult(
+        sell_signal = chikou_cross_dn and price_below_cloud
+
+        if sell_signal and entry.require_chikou_clear:
+            clear, _ = is_chikou_clear(
+                df, "SELL", self.cfg.displacement, entry.chikou_clear_lookback
+            )
+            sell_conditions["chikou_clearance"] = clear
+            sell_signal = sell_signal and clear
+
+        if sell_signal:
+            result = SignalResult(
                 signal=Signal.SELL, mode_used="chikou_cross",
                 reasons=[k for k, v in sell_conditions.items() if v],
                 conditions_met=sell_conditions,
                 bar_time=ichi.bar_time, ichi=ichi,
             )
+            self._apply_score(result, ichi, df, "SELL")
+            return result
 
         return SignalResult(signal=Signal.NEUTRAL, mode_used="chikou_cross",
                             conditions_met=conditions, bar_time=ichi.bar_time, ichi=ichi)
@@ -223,13 +296,25 @@ class SignalEngine:
             "future_cloud_bullish": future_bullish,
         }
 
-        if prev_inside_or_below and now_above and future_bullish:
-            return SignalResult(
+        buy_signal = prev_inside_or_below and now_above and future_bullish
+
+        entry = self.cfg.entry_conditions
+        if buy_signal and entry.require_chikou_clear:
+            clear, _ = is_chikou_clear(
+                df, "BUY", self.cfg.displacement, entry.chikou_clear_lookback
+            )
+            conditions["chikou_clearance"] = clear
+            buy_signal = buy_signal and clear
+
+        if buy_signal:
+            result = SignalResult(
                 signal=Signal.BUY, mode_used="kumo_breakout",
                 reasons=[k for k, v in conditions.items() if v],
                 conditions_met=conditions,
                 bar_time=ichi.bar_time, ichi=ichi,
             )
+            self._apply_score(result, ichi, df, "BUY")
+            return result
 
         # SELL mirror
         prev_inside_or_above = ichi.prev_close >= ichi.prev_cloud_bottom
@@ -242,13 +327,24 @@ class SignalEngine:
             "future_cloud_bearish": future_bearish,
         }
 
-        if prev_inside_or_above and now_below and future_bearish:
-            return SignalResult(
+        sell_signal = prev_inside_or_above and now_below and future_bearish
+
+        if sell_signal and entry.require_chikou_clear:
+            clear, _ = is_chikou_clear(
+                df, "SELL", self.cfg.displacement, entry.chikou_clear_lookback
+            )
+            sell_conditions["chikou_clearance"] = clear
+            sell_signal = sell_signal and clear
+
+        if sell_signal:
+            result = SignalResult(
                 signal=Signal.SELL, mode_used="kumo_breakout",
                 reasons=[k for k, v in sell_conditions.items() if v],
                 conditions_met=sell_conditions,
                 bar_time=ichi.bar_time, ichi=ichi,
             )
+            self._apply_score(result, ichi, df, "SELL")
+            return result
 
         return SignalResult(signal=Signal.NEUTRAL, mode_used="kumo_breakout",
                             conditions_met=conditions, bar_time=ichi.bar_time, ichi=ichi)
@@ -258,54 +354,130 @@ class SignalEngine:
         ps = pip_size("EURUSD")  # approximate for cloud thickness check
         min_thickness = self.cfg.cloud_min_thickness_pips
 
+        entry = self.cfg.entry_conditions
+
         # BUY conditions
         price_above_cloud = ichi.close > ichi.cloud_top
         tk_above = ichi.tenkan > ichi.kijun
-        chikou_ref = self._get_chikou_ref(df)
-        chikou_clear = ichi.chikou > chikou_ref if chikou_ref is not None else False
+        chikou_clear_buy, _ = is_chikou_clear(
+            df, "BUY", self.cfg.displacement, entry.chikou_clear_lookback
+        )
         bullish_cloud = ichi.senkou_a > ichi.senkou_b
         thick_enough = ichi.cloud_thickness_pips >= min_thickness
 
         conditions = {
             "price_above_cloud": price_above_cloud,
             "tk_above_kijun": tk_above,
-            "chikou_clear": chikou_clear,
+            "chikou_clear": chikou_clear_buy,
             "bullish_cloud": bullish_cloud,
             "cloud_thick_enough": thick_enough,
         }
 
         if all(conditions.values()):
-            return SignalResult(
+            result = SignalResult(
                 signal=Signal.BUY, mode_used="full_confirm",
                 reasons=[k for k, v in conditions.items() if v],
                 conditions_met=conditions,
                 bar_time=ichi.bar_time, ichi=ichi,
             )
+            self._apply_score(result, ichi, df, "BUY")
+            return result
 
         # SELL mirror
         price_below_cloud = ichi.close < ichi.cloud_bottom
         tk_below = ichi.tenkan < ichi.kijun
-        chikou_below = ichi.chikou < chikou_ref if chikou_ref is not None else False
+        chikou_clear_sell, _ = is_chikou_clear(
+            df, "SELL", self.cfg.displacement, entry.chikou_clear_lookback
+        )
         bearish_cloud = ichi.senkou_a < ichi.senkou_b
 
         sell_conditions = {
             "price_below_cloud": price_below_cloud,
             "tk_below_kijun": tk_below,
-            "chikou_below": chikou_below,
+            "chikou_below": chikou_clear_sell,
             "bearish_cloud": bearish_cloud,
             "cloud_thick_enough": thick_enough,
         }
 
         if all(sell_conditions.values()):
-            return SignalResult(
+            result = SignalResult(
                 signal=Signal.SELL, mode_used="full_confirm",
                 reasons=[k for k, v in sell_conditions.items() if v],
                 conditions_met=sell_conditions,
                 bar_time=ichi.bar_time, ichi=ichi,
             )
+            self._apply_score(result, ichi, df, "SELL")
+            return result
 
         return SignalResult(signal=Signal.NEUTRAL, mode_used="full_confirm",
                             conditions_met=conditions, bar_time=ichi.bar_time, ichi=ichi)
+
+    # ── Scoring ──────────────────────────────────────────────────────────────
+
+    def _apply_score(
+        self, result: SignalResult, ichi: IchimokuValues, df: pd.DataFrame, direction: str
+    ) -> None:
+        """Compute and attach score to a non-NEUTRAL result."""
+        scoring = self.cfg.signal_scoring
+        if not scoring.enabled:
+            return
+        score, breakdown = self._compute_score(ichi, df, direction)
+        result.score = score
+        result.score_breakdown = breakdown
+
+    def _compute_score(
+        self, ichi: IchimokuValues, df: pd.DataFrame, direction: str
+    ) -> tuple[float, dict[str, float]]:
+        """
+        Score a signal from 0.0-1.0 based on weighted components.
+        Each component scores 0.0-1.0, final = weighted sum capped [0, 1].
+        """
+        weights = self.cfg.signal_scoring.weights
+        breakdown: dict[str, float] = {}
+
+        # 1. TK alignment: how far tenkan is from kijun in the right direction
+        tk_diff = ichi.tenkan - ichi.kijun
+        if direction == "SELL":
+            tk_diff = -tk_diff
+        ps = pip_size("EURUSD")
+        tk_pips = tk_diff / ps
+        breakdown["tk_alignment"] = min(max(tk_pips / 20.0, 0.0), 1.0)
+
+        # 2. Price vs cloud: distance from cloud edge
+        if direction == "BUY":
+            cloud_dist = (ichi.close - ichi.cloud_top) / ps
+        else:
+            cloud_dist = (ichi.cloud_bottom - ichi.close) / ps
+        breakdown["price_vs_cloud"] = min(max(cloud_dist / 30.0, 0.0), 1.0)
+
+        # 3. Chikou clearance: uses margin from is_chikou_clear
+        entry = self.cfg.entry_conditions
+        _, margin = is_chikou_clear(
+            df, direction, self.cfg.displacement, entry.chikou_clear_lookback
+        )
+        margin_pips = margin / ps
+        breakdown["chikou_clear"] = min(max(margin_pips / 20.0, 0.0), 1.0)
+
+        # 4. Cloud direction
+        if direction == "BUY":
+            cloud_dir = 1.0 if ichi.senkou_a > ichi.senkou_b else 0.0
+        else:
+            cloud_dir = 1.0 if ichi.senkou_a < ichi.senkou_b else 0.0
+        breakdown["cloud_direction"] = cloud_dir
+
+        # 5. Cloud thickness: thicker = stronger
+        breakdown["cloud_thickness"] = min(ichi.cloud_thickness_pips / 30.0, 1.0)
+
+        # 6. Trend filter: defaults to 1.0, set externally if needed
+        breakdown["trend_filter"] = 1.0
+
+        # Weighted sum
+        score = 0.0
+        for key, weight in weights.items():
+            score += breakdown.get(key, 0.0) * weight
+        score = min(max(score, 0.0), 1.0)
+
+        return round(score, 4), breakdown
 
     # ── Helpers ──────────────────────────────────────────────────────────────
 

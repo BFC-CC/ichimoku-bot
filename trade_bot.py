@@ -39,12 +39,17 @@ from core.break_even_manager import BreakEvenManager
 from core.position_manager import PositionManager
 from core.action_verifier import ActionVerifier
 from core.trade_event_listener import TradeEventListener
+from core.health_monitor import HealthMonitor
+from core.adversarial_validator import AdversarialValidator, SignalContext
+from core.momentum import calculate_momentum_score
+from core.signal_engine import classify_signal_strength
 from utils.failed_action_logger import FailedActionLogger
 from utils.trade_logger import TradeLogger
 from utils.state import BotState, SignalSnapshot, PositionSnapshot, TradeRecord
 from utils.logger import setup_logging
 from utils.dashboard_server import DashboardServer
 from utils.state_pusher import StatePusher
+from utils.keep_alive import KeepAlive
 
 
 class TradeBotOrchestrator:
@@ -89,14 +94,34 @@ class TradeBotOrchestrator:
             self.mt5, self.verifier, self.trade_logger
         )
 
+        # Adversarial validator
+        self.adversarial_validator = AdversarialValidator(
+            config.validation, self.trend_filter, self.news_filter
+        )
+
         # State & Dashboard
         self.state = BotState()
-        self.dashboard = DashboardServer(config.dashboard, self.state)
+        self.dashboard = DashboardServer(
+            config.dashboard, self.state,
+            validation_metrics=self.adversarial_validator.metrics,
+        )
         self.state_pusher: Optional[StatePusher] = None
         if dashboard_url:
             self.state_pusher = StatePusher(
                 self.state, dashboard_url, dashboard_secret
             )
+
+        # Health monitor
+        self.health_monitor = HealthMonitor(
+            config.health_monitor,
+            notifier_fn=lambda msg: logger.info(f"[HealthMonitor] {msg}"),
+        )
+
+        # Keep-alive
+        self.keep_alive = KeepAlive(
+            config.dashboard.keep_alive_url,
+            config.dashboard.keep_alive_interval_sec,
+        )
 
     def start(self, run_once: bool = False) -> None:
         """Start the bot main loop."""
@@ -118,6 +143,7 @@ class TradeBotOrchestrator:
 
         # Start dashboard
         self.dashboard.start()
+        self.keep_alive.start()
         if self.state_pusher:
             self.state_pusher.start()
 
@@ -173,6 +199,7 @@ class TradeBotOrchestrator:
                 )
             except Exception as e:
                 logger.error(f"Error processing {symbol}: {e}")
+                self.health_monitor.record_error("process_symbol", f"{symbol}: {e}")
 
         # Update state
         self.state.update_signals(signal_snapshots)
@@ -210,6 +237,16 @@ class TradeBotOrchestrator:
             self.verifier.stats, self.verifier.failure_counts
         )
 
+        # Health monitoring
+        self.health_monitor.check_health()
+        self.state.update_health_metrics(self.health_monitor.get_metrics())
+
+        # Validation metrics
+        if self.cfg.validation.adversarial_validation:
+            self.state.update_validation_metrics(
+                self.adversarial_validator.metrics.get_metrics()
+            )
+
         if cycle % 10 == 0:
             logger.info(
                 f"Cycle {cycle} | Balance: ${account.balance:.2f} | "
@@ -246,6 +283,7 @@ class TradeBotOrchestrator:
 
         ichi_by_symbol[symbol] = ichi
         current_prices[symbol] = ichi.close
+        self.health_monitor.record_tick(symbol)
 
         # Build signal snapshot
         sig_snap = SignalSnapshot(
@@ -266,13 +304,25 @@ class TradeBotOrchestrator:
         # Evaluate signal
         result = self.signal_engine.evaluate(ichi, df_closed)
         sig_snap.signal = result.signal.value
+        sig_snap.score = result.score
         signal_snapshots.append(sig_snap)
 
         if result.signal == Signal.NEUTRAL:
             return
 
+        # Signal scoring filter
+        scoring = self.cfg.ichimoku.signal_scoring
+        if scoring.enabled and result.score < scoring.min_score_threshold:
+            logger.info(
+                f"Signal {result.signal.value} {symbol} rejected: "
+                f"score {result.score:.2f} < threshold {scoring.min_score_threshold}"
+            )
+            return
+
         direction = result.signal.value
-        logger.info(f"Signal: {direction} {symbol} (mode={result.mode_used})")
+        logger.info(
+            f"Signal: {direction} {symbol} (mode={result.mode_used}, score={result.score:.2f})"
+        )
 
         # Session filter
         ok, reason = self.session_filter.is_tradeable(now)
@@ -287,6 +337,7 @@ class TradeBotOrchestrator:
             return
 
         # D1 trend filter (optional)
+        df_d1 = None
         try:
             df_d1 = self.mt5.get_bars(symbol, "D1", 200)
             confirmed, reason = self.trend_filter.confirms_direction(
@@ -297,6 +348,40 @@ class TradeBotOrchestrator:
                 return
         except Exception:
             pass  # Proceed without D1 confirmation if bars unavailable
+
+        # Calculate SL/TP (before risk guard — no point checking risk if SLTP invalid)
+        sltp = self.sltp.build(direction, ichi.close, symbol, ichi, df_closed)
+        if sltp is None:
+            logger.warning(f"SL/TP rejected for {symbol}")
+            return
+
+        # Momentum scoring (conditional)
+        momentum_score = 0.0
+        if self.cfg.validation.momentum_scoring:
+            momentum_score = calculate_momentum_score(df_closed, direction)
+
+        # Strength classification (conditional)
+        if self.cfg.validation.strength_classification:
+            result.strength = classify_signal_strength(
+                result.score, momentum_score, result.conditions_met
+            )
+            result.momentum_score = momentum_score
+            logger.info(f"Signal strength {symbol}: {result.strength} (momentum={momentum_score:.1f})")
+
+        # Adversarial validation (conditional)
+        if self.cfg.validation.adversarial_validation:
+            ctx = SignalContext(
+                symbol=symbol, direction=direction, ichi=ichi,
+                df_closed=df_closed, sltp=sltp, df_d1=df_d1,
+                now_utc=now, signal_score=result.score,
+                momentum_score=momentum_score,
+            )
+            val_result = self.adversarial_validator.validate(ctx)
+            if not val_result["passed"]:
+                logger.info(
+                    f"Adversarial rejected {symbol}: RTR={val_result['rtr_score']:.2f}"
+                )
+                return
 
         # Risk guard
         positions = self.mt5.get_open_positions()
@@ -311,12 +396,6 @@ class TradeBotOrchestrator:
             logger.info(f"Risk guard blocked {symbol}: {reason}")
             return
 
-        # Calculate SL/TP
-        sltp = self.sltp.build(direction, ichi.close, symbol, ichi, df_closed)
-        if sltp is None:
-            logger.warning(f"SL/TP rejected for {symbol}")
-            return
-
         # Calculate lot size
         sym_info = self.mt5.get_symbol_info(symbol)
         lot_info = LotSymbolInfo(
@@ -326,8 +405,18 @@ class TradeBotOrchestrator:
             contract_size=sym_info.contract_size,
             name=symbol,
         )
+        lot_score = result.score if scoring.enabled and scoring.scale_lot_by_score else 1.0
+
+        # Strength-based lot multiplier
+        if self.cfg.validation.strength_classification and result.strength:
+            multiplier = self.cfg.validation.strength_lot_multiplier.get(
+                result.strength, 1.0
+            )
+            lot_score *= multiplier
+
         lot_size = self.lot_calc.calculate(
-            account.balance, ichi.close, sltp.sl, symbol, lot_info
+            account.balance, ichi.close, sltp.sl, symbol, lot_info,
+            signal_score=lot_score,
         )
 
         # Execute order
@@ -344,13 +433,29 @@ class TradeBotOrchestrator:
                 f"Trade executed: {direction} {lot_size} {symbol} @ {order_result.price} "
                 f"SL={sltp.sl} TP={sltp.tp}"
             )
+            # Post-trade quality check
+            try:
+                ps = pip_size(symbol)
+                quality = self.verifier.verify_trade_quality({
+                    "expected_price": ichi.close,
+                    "execution_price": order_result.price,
+                    "requested_volume": lot_size,
+                    "filled_volume": getattr(order_result, "volume", lot_size),
+                    "spread_pips": (sym_info.ask - sym_info.bid) / ps if ps > 0 else 0,
+                    "symbol": symbol,
+                })
+                logger.debug(f"Trade quality {symbol}: {quality:.2f}")
+            except Exception as e:
+                logger.debug(f"Quality check skipped: {e}")
         else:
             logger.error(f"Trade failed: {symbol} — {order_result.comment}")
+            self.health_monitor.record_execution_failure(symbol, order_result.comment)
 
     def _shutdown(self) -> None:
         """Graceful shutdown."""
         logger.info("Shutting down...")
         self._running = False
+        self.keep_alive.stop()
         if self.state_pusher:
             self.state_pusher.stop()
         self.mt5.disconnect()

@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tool &amp; CLI Usage — IchiBot v3</title>
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --surface: #1a1a2e;
+    --surface2: #16213e;
+    --border: #0f3460;
+    --accent: #00d4ff;
+    --accent2: #00ff88;
+    --text: #e0e0e0;
+    --text-muted: #888;
+    --red: #ff4444;
+    --orange: #ffaa00;
+    --code-bg: #0d1117;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    display: flex;
+    min-height: 100vh;
+  }
+  nav {
+    width: 260px; min-height: 100vh; background: var(--surface);
+    border-right: 1px solid var(--border); padding: 24px 0;
+    position: fixed; overflow-y: auto;
+  }
+  nav .logo {
+    font-size: 18px; font-weight: 700; color: var(--accent);
+    padding: 0 24px 20px; border-bottom: 1px solid var(--border);
+    font-family: 'Consolas','Monaco',monospace;
+  }
+  nav .logo span { color: var(--text-muted); font-weight: 400; font-size: 12px; display: block; }
+  nav ul { list-style: none; margin-top: 16px; }
+  nav ul li a {
+    display: block; padding: 10px 24px; color: var(--text-muted);
+    text-decoration: none; font-size: 14px; transition: all 0.2s;
+    border-left: 3px solid transparent;
+  }
+  nav ul li a:hover { color: var(--text); background: var(--surface2); }
+  nav ul li a.active { color: var(--accent); border-left-color: var(--accent); background: var(--surface2); }
+  nav .section-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-muted); padding: 20px 24px 6px;
+  }
+  main { margin-left: 260px; flex: 1; padding: 48px 64px; max-width: 960px; }
+  h1 { font-size: 32px; color: var(--accent); margin-bottom: 8px; }
+  .subtitle { color: var(--text-muted); font-size: 16px; margin-bottom: 40px; }
+  h2 { font-size: 22px; color: var(--accent); margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 16px; color: var(--accent2); margin: 24px 0 8px; }
+  p { margin-bottom: 14px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 8px 0 16px 24px; }
+  li { margin-bottom: 6px; font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--accent); font-weight: 600; background: var(--surface2); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  tr:hover td { background: var(--surface); }
+  code { font-family: 'Consolas','Monaco','Fira Code',monospace; background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; color: var(--accent2); }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 16px 0; font-size: 13px; line-height: 1.5; }
+  pre code { background: none; padding: 0; color: var(--text); }
+  .callout { background: var(--surface2); border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; padding: 16px 20px; margin: 16px 0; }
+  .callout.warn { border-left-color: var(--orange); }
+  .callout .callout-title { font-weight: 700; font-size: 13px; text-transform: uppercase; margin-bottom: 6px; }
+  .callout .callout-title.info { color: var(--accent); }
+  .callout .callout-title.warn { color: var(--orange); }
+  .flag { display: inline-block; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 12px; font-family: monospace; color: var(--orange); }
+  @media (max-width: 900px) { nav { display: none; } main { margin-left: 0; padding: 24px; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">IchiBot v3<span>Documentation</span></div>
+  <div class="section-label">Overview</div>
+  <ul>
+    <li><a href="index.html">Home</a></li>
+    <li><a href="architecture.html">Architecture</a></li>
+  </ul>
+  <div class="section-label">Guides</div>
+  <ul>
+    <li><a href="tool_usage_guide.html" class="active">Tool &amp; CLI Usage</a></li>
+    <li><a href="deploy_guide.html">Deployment</a></li>
+  </ul>
+  <div class="section-label">Reference</div>
+  <ul>
+    <li><a href="configuration.html">Configuration</a></li>
+  </ul>
+</nav>
+
+<main>
+  <h1>Tool &amp; CLI Usage Guide</h1>
+  <p class="subtitle">All commands, flags, test patterns, and utilities</p>
+
+  <!-- ──────────────────── TRADE BOT ──────────────────── -->
+  <h2 id="trade-bot">trade_bot.py — Trading Bot v3</h2>
+
+  <p>The main automated trading orchestrator. Scans pairs, evaluates Ichimoku signals, executes trades, manages positions.</p>
+
+  <pre><code>python trade_bot.py [OPTIONS]</code></pre>
+
+  <table>
+    <tr><th>Flag</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>--config PATH</code></td><td><code>config/strategy_config.json</code></td><td>Path to the JSON strategy config file</td></tr>
+    <tr><td><code>--sim</code></td><td>off</td><td>Force simulation mode (no MT5 connection needed). Generates synthetic OHLCV data.</td></tr>
+    <tr><td><code>--once</code></td><td>off</td><td>Run exactly one cycle and exit. Useful for testing the full pipeline.</td></tr>
+    <tr><td><code>--dashboard-url URL</code></td><td>empty</td><td>Remote dashboard URL to push state to via <code>StatePusher</code></td></tr>
+    <tr><td><code>--dashboard-secret TOKEN</code></td><td>empty</td><td>Bearer token for dashboard auth</td></tr>
+  </table>
+
+  <h3>Common Patterns</h3>
+  <pre><code># Quick pipeline test (sim, one cycle, exit)
+python trade_bot.py --sim --once
+
+# Continuous simulation with logging
+python trade_bot.py --sim
+
+# Production with live MT5
+python trade_bot.py
+
+# Custom config file
+python trade_bot.py --config my_config.json
+
+# Split deployment (bot here, dashboard on Render)
+python trade_bot.py --dashboard-url https://ichibot.onrender.com --dashboard-secret abc123</code></pre>
+
+  <div class="callout">
+    <div class="callout-title info">Cycle Interval</div>
+    The bot polls every <code>scheduler.bar_check_interval_sec</code> seconds (default: 60).
+    On each cycle: fetch bars &rarr; compute Ichimoku &rarr; evaluate signal &rarr; apply filters &rarr; calculate lot &rarr; execute &rarr; manage positions &rarr; poll trade events.
+  </div>
+
+  <!-- ──────────────────── BOT.PY ──────────────────── -->
+  <h2 id="signal-bot">bot.py — Signal Bot v1</h2>
+
+  <p>Discord notification bot. Detects 6 Ichimoku signal types and sends rich embeds.</p>
+
+  <pre><code>python bot.py [OPTIONS]</code></pre>
+
+  <table>
+    <tr><th>Flag</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>--dry-run</code></td><td>from config</td><td>Force dry run (log signals, don't send Discord messages)</td></tr>
+    <tr><td><code>--config PATH</code></td><td><code>config.yaml</code></td><td>Path to YAML config file</td></tr>
+  </table>
+
+  <pre><code># Dry run (no Discord messages)
+python bot.py --dry-run
+
+# With custom config
+python bot.py --config dev.yaml
+
+# Production (set dry_run: false in config.yaml first)
+python bot.py</code></pre>
+
+  <!-- ──────────────────── BACKTEST ──────────────────── -->
+  <h2 id="backtest">run_backtest.py — Backtest Engine</h2>
+
+  <p>Replays candles through the v1 signal pipeline. Zero look-ahead bias &mdash; uses the exact same code path as live.</p>
+
+  <pre><code>python run_backtest.py [OPTIONS]</code></pre>
+
+  <table>
+    <tr><th>Flag</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>--from YYYY-MM-DD</code></td><td>from config</td><td>Start date for backtest</td></tr>
+    <tr><td><code>--to YYYY-MM-DD</code></td><td>from config</td><td>End date for backtest</td></tr>
+    <tr><td><code>--symbol SYMBOL</code></td><td>all configured</td><td>Backtest a single pair (e.g., <code>EURUSD</code>)</td></tr>
+    <tr><td><code>--tf TIMEFRAME</code></td><td>from config</td><td>Timeframe (e.g., <code>H1</code>, <code>H4</code>)</td></tr>
+    <tr><td><code>--dry-run</code></td><td>off</td><td>Skip CSV output (console only)</td></tr>
+  </table>
+
+  <pre><code># Full backtest from config
+python run_backtest.py
+
+# Specific date range
+python run_backtest.py --from 2024-01-01 --to 2024-12-31
+
+# Single pair, single timeframe
+python run_backtest.py --symbol EURUSD --tf H1
+
+# Console only, no CSV
+python run_backtest.py --dry-run</code></pre>
+
+  <div class="callout">
+    <div class="callout-title info">Synthetic Data Fallback</div>
+    When MT5 is unavailable (Linux without Wine bridge), the backtest automatically falls back to
+    <code>make_synthetic_candles()</code> &mdash; a deterministic random walk seeded by symbol name.
+    Minimum 78 warmup candles (52 for Senkou B + 26 displacement) must elapse before signals fire.
+  </div>
+
+  <!-- ──────────────────── TESTING ──────────────────── -->
+  <h2 id="testing">Testing</h2>
+
+  <p>375 tests, no MT5 required. All broker calls are mocked.</p>
+
+  <h3>Run All Tests</h3>
+  <pre><code>source venv/bin/activate
+pytest tests/ -v</code></pre>
+
+  <h3>Run Specific Test Files</h3>
+  <pre><code># v1 signal detection
+pytest tests/test_signals.py -v
+
+# v3 signal engine (4 modes)
+pytest tests/test_signal_engine.py -v
+
+# Signal scoring
+pytest tests/test_signal_scoring.py -v
+
+# Config validation
+pytest tests/test_config_loader.py -v
+
+# Risk management
+pytest tests/test_lot_calculator.py tests/test_risk_manager.py tests/test_sltp_builder.py -v
+
+# Position management
+pytest tests/test_position_manager.py tests/test_break_even_manager.py -v
+
+# Filters
+pytest tests/test_session_filter.py tests/test_news_filter_v2.py tests/test_trend_filter.py -v
+
+# Health & monitoring
+pytest tests/test_health_monitor.py tests/test_keep_alive.py -v
+
+# Validation layers
+pytest tests/test_adversarial_validator.py tests/test_momentum.py -v
+
+# Historical pattern validation
+pytest tests/validation/ -v</code></pre>
+
+  <h3>Run by Keyword</h3>
+  <pre><code># All TK cross tests
+pytest tests/ -v -k "tk_cross"
+
+# All BUY signal tests
+pytest tests/ -v -k "buy"
+
+# All chikou-related tests
+pytest tests/ -v -k "chikou"</code></pre>
+
+  <h3>Test Coverage by Module</h3>
+  <table>
+    <tr><th>Module</th><th>Test File(s)</th><th>What It Tests</th></tr>
+    <tr><td>Ichimoku math</td><td><code>test_indicator.py</code>, <code>test_ichimoku_calculator.py</code></td><td>Periods, shifting, frozen values, NaN handling</td></tr>
+    <tr><td>v1 Signals</td><td><code>test_signals.py</code></td><td>6 signal types, cloud filter, cooldowns</td></tr>
+    <tr><td>v3 Signal Engine</td><td><code>test_signal_engine.py</code></td><td>4 modes: tk_cross, chikou_cross, kumo_breakout, full_confirm</td></tr>
+    <tr><td>Signal Scoring</td><td><code>test_signal_scoring.py</code></td><td>6-component weighted score, threshold filtering</td></tr>
+    <tr><td>Signal Strength</td><td><code>test_signal_strength.py</code></td><td>STRONG/MODERATE/WEAK classification</td></tr>
+    <tr><td>Chikou Clearance</td><td><code>test_chikou_clearance.py</code></td><td>High-low range validation over 26 bars</td></tr>
+    <tr><td>Candles</td><td><code>test_candle_buffer.py</code>, <code>test_candle_close_guard.py</code></td><td>Seed, append, dedup, live bar stripping</td></tr>
+    <tr><td>Lot Sizing</td><td><code>test_lot_calculator.py</code></td><td>risk_pct, fixed, compound modes; JPY pip math</td></tr>
+    <tr><td>SL/TP</td><td><code>test_sltp_builder.py</code></td><td>Kijun, ATR, cloud_edge, fixed_pips; buffer; min distance</td></tr>
+    <tr><td>Risk Guard</td><td><code>test_risk_manager.py</code></td><td>Max trades, daily loss, drawdown, goal halt</td></tr>
+    <tr><td>Position Mgmt</td><td><code>test_position_manager.py</code>, <code>test_break_even_manager.py</code></td><td>Trailing stop, break-even, exit conditions</td></tr>
+    <tr><td>Filters</td><td><code>test_session_filter.py</code>, <code>test_trend_filter.py</code>, <code>test_news_filter_v2.py</code></td><td>UTC hours, Friday, D1 cloud, news blackout</td></tr>
+    <tr><td>Execution</td><td><code>test_order_executor.py</code>, <code>test_trade_event_listener.py</code></td><td>Order retry, deal polling</td></tr>
+    <tr><td>Verification</td><td><code>test_action_verifier.py</code>, <code>test_post_trade_quality.py</code></td><td>PnL scoring, failure types, slippage checks</td></tr>
+    <tr><td>Adversarial</td><td><code>test_adversarial_validator.py</code></td><td>3 critics, RTR score, pass/reject</td></tr>
+    <tr><td>Momentum</td><td><code>test_momentum.py</code></td><td>RSI, ADX, EMA alignment, ATR consistency</td></tr>
+    <tr><td>Health</td><td><code>test_health_monitor.py</code>, <code>test_keep_alive.py</code></td><td>Tick gaps, errors, ping thread</td></tr>
+    <tr><td>Config</td><td><code>test_config_loader.py</code></td><td>JSON parsing, validation rules, defaults</td></tr>
+    <tr><td>Logging</td><td><code>test_failed_action_logger.py</code>, <code>test_trade_logger.py</code></td><td>CSV writing, thread safety (filelock)</td></tr>
+    <tr><td>State</td><td><code>test_state.py</code></td><td>Thread-safe BotState, snapshots</td></tr>
+    <tr><td>Notifications</td><td><code>test_notifier.py</code></td><td>Payload format, dry_run, HTTP retry, 429</td></tr>
+    <tr><td>Backtest</td><td><code>test_backtest_engine.py</code>, <code>test_backtest_report.py</code></td><td>Replay, warmup, CSV export</td></tr>
+    <tr><td>Orchestrator</td><td><code>test_trade_bot.py</code></td><td>TradeBotOrchestrator wiring</td></tr>
+    <tr><td>Historical</td><td><code>validation/test_h2_historical.py</code></td><td>Known market patterns (uptrend, downtrend, ranging)</td></tr>
+  </table>
+
+  <!-- ──────────────────── DASHBOARDS ──────────────────── -->
+  <h2 id="dashboards">Dashboards</h2>
+
+  <h3>v3 FastAPI Dashboard (port 8000)</h3>
+  <p>Starts automatically with <code>trade_bot.py</code>. Live WebSocket updates every 2 seconds.</p>
+  <table>
+    <tr><th>URL</th><th>Content</th></tr>
+    <tr><td><code>http://localhost:8000</code></td><td>HTML dashboard: account, signals, positions, trades, verification, logs</td></tr>
+    <tr><td><code>http://localhost:8000/api/health</code></td><td>JSON: <code>{"status": "ok", "uptime_sec": ..., "connected_since": ...}</code></td></tr>
+    <tr><td><code>http://localhost:8000/api/validation/metrics</code></td><td>JSON: adversarial validation counters (when enabled)</td></tr>
+    <tr><td><code>ws://localhost:8000/ws</code></td><td>WebSocket: full state snapshot pushed every 2 seconds</td></tr>
+  </table>
+
+  <h3>v1 Streamlit Dashboard (port 8501)</h3>
+  <pre><code>streamlit run app.py   # http://localhost:8501</code></pre>
+  <p>Plotly-rendered Ichimoku charts with synthetic data. Sidebar navigation. Reads/writes <code>config.yaml</code> live.</p>
+
+  <!-- ──────────────────── UTILITIES ──────────────────── -->
+  <h2 id="utilities">Utilities</h2>
+
+  <h3>verify_deploy.py</h3>
+  <p>Verifies a deployed dashboard is responding and rendering correctly.</p>
+  <pre><code>python utils/verify_deploy.py [OPTIONS]</code></pre>
+  <table>
+    <tr><th>Flag</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>--url URL</code></td><td><code>https://forex-bot-r5o7.onrender.com</code></td><td>Dashboard URL to verify</td></tr>
+    <tr><td><code>--output PATH</code></td><td><code>logs/dashboard_screenshot.png</code></td><td>Where to save the screenshot</td></tr>
+  </table>
+  <p>Checks: health endpoint, headless Firefox screenshot, image content validation (not blank).</p>
+
+  <h3>start_mt5_bridge.py</h3>
+  <p>Starts the mt5linux RPyC bridge for Wine-based MT5 communication on Linux.</p>
+  <pre><code>python3 start_mt5_bridge.py    # listens on localhost:18812</code></pre>
+  <p>Must remain running in a separate terminal while the bot is active.</p>
+
+  <h3>setup_env.sh</h3>
+  <p>One-shot environment bootstrap. Installs system packages, creates venv, installs pip dependencies.</p>
+  <pre><code>bash setup_env.sh</code></pre>
+
+  <h3>setup_mt5_wine.sh</h3>
+  <p>One-time Wine setup for MT5 on Linux. Installs Wine, .NET Framework, and the MT5 terminal.</p>
+  <pre><code>bash setup_mt5_wine.sh</code></pre>
+
+  <!-- ──────────────────── ENVIRONMENT ──────────────────── -->
+  <h2 id="env-vars">Environment Variables</h2>
+
+  <table>
+    <tr><th>Variable</th><th>Used By</th><th>Description</th></tr>
+    <tr><td><code>DISCORD_WEBHOOK_URL</code></td><td><code>bot.py</code> (v1)</td><td>Discord webhook URL for signal notifications</td></tr>
+    <tr><td><code>DASHBOARD_SECRET</code></td><td><code>dashboard/app.py</code></td><td>Bearer token for <code>POST /api/state</code></td></tr>
+  </table>
+
+  <div class="callout">
+    <div class="callout-title info">Secrets Management</div>
+    Secrets live in <code>.env</code> (loaded by <code>python-dotenv</code>).
+    The v1 config.yaml supports <code>${DISCORD_WEBHOOK_URL}</code> expansion via <code>os.path.expandvars</code>.
+    The v3 config uses plain JSON with no variable expansion &mdash; sensitive values (account password) go directly in the JSON or are passed via CLI flags.
+  </div>
+
+  <!-- ──────────────────── LOGGING ──────────────────── -->
+  <h2 id="logging">Logging</h2>
+
+  <p>All modules use <code>loguru.logger</code> (not stdlib <code>logging</code>).</p>
+
+  <table>
+    <tr><th>Config Key</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>logging.level</code></td><td><code>INFO</code></td><td>Log level: DEBUG, INFO, WARNING, ERROR</td></tr>
+    <tr><td><code>logging.log_to_file</code></td><td><code>true</code></td><td>Write to <code>logs/bot.log</code></td></tr>
+    <tr><td><code>logging.log_dir</code></td><td><code>logs</code></td><td>Directory for all log files</td></tr>
+    <tr><td><code>logging.max_file_mb</code></td><td><code>10</code></td><td>Max size per log file before rotation</td></tr>
+    <tr><td><code>logging.log_trades_csv</code></td><td><code>true</code></td><td>Write closed trades to <code>trades.csv</code></td></tr>
+  </table>
+
+</main>
+</body>
+</html>

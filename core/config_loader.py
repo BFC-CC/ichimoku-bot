@@ -44,6 +44,7 @@ class EntryConditions:
     require_chikou_clear: bool = True
     require_bullish_cloud: bool = True
     require_future_cloud_bullish: bool = False
+    chikou_clear_lookback: int = 5
 
 
 @dataclass
@@ -51,6 +52,21 @@ class ExitConditions:
     exit_on_tk_cross_against: bool = True
     exit_on_price_enter_cloud: bool = False
     exit_on_chikou_cross_down: bool = False
+
+
+@dataclass
+class SignalScoringConfig:
+    enabled: bool = False
+    min_score_threshold: float = 0.5
+    scale_lot_by_score: bool = False
+    weights: dict = field(default_factory=lambda: {
+        "tk_alignment": 0.15,
+        "price_vs_cloud": 0.20,
+        "chikou_clear": 0.20,
+        "cloud_direction": 0.15,
+        "cloud_thickness": 0.10,
+        "trend_filter": 0.20,
+    })
 
 
 @dataclass
@@ -64,6 +80,7 @@ class IchimokuConfig:
     exit_conditions: ExitConditions = field(default_factory=ExitConditions)
     cloud_min_thickness_pips: float = 5.0
     use_virtual_tp: bool = False
+    signal_scoring: SignalScoringConfig = field(default_factory=SignalScoringConfig)
 
 
 @dataclass
@@ -141,6 +158,10 @@ class NewsFilterConfig:
     minutes_before: int = 30
     minutes_after: int = 30
     impact_levels: List[str] = field(default_factory=lambda: ["high"])
+    calendar_source: str = "static"
+    api_url: str = ""
+    cache_ttl_hours: int = 24
+    static_events_path: str = "data/news_events.json"
 
 
 @dataclass
@@ -159,10 +180,40 @@ class LoggingConfig:
 
 
 @dataclass
+class HealthMonitorConfig:
+    enabled: bool = True
+    max_tick_gap_sec: int = 300
+    max_consecutive_errors: int = 3
+    alert_cooldown_sec: int = 900
+    heartbeat_interval_sec: int = 3600
+
+
+@dataclass
 class DashboardConfig:
     enabled: bool = True
     host: str = "0.0.0.0"
     port: int = 8000
+    keep_alive_url: str = ""
+    keep_alive_interval_sec: int = 600
+
+
+@dataclass
+class QualityChecksConfig:
+    max_slippage_pips: float = 3.0
+    min_fill_ratio: float = 0.95
+    max_spread_pips: float = 5.0
+
+
+@dataclass
+class ValidationConfig:
+    adversarial_validation: bool = False
+    min_rtr_score: float = 0.6
+    momentum_scoring: bool = False
+    strength_classification: bool = False
+    quality_checks: QualityChecksConfig = field(default_factory=QualityChecksConfig)
+    strength_lot_multiplier: dict = field(default_factory=lambda: {
+        "STRONG": 1.0, "MODERATE": 0.7, "WEAK": 0.4
+    })
 
 
 @dataclass
@@ -179,6 +230,8 @@ class Config:
     scheduler: SchedulerConfig = field(default_factory=SchedulerConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     dashboard: DashboardConfig = field(default_factory=DashboardConfig)
+    health_monitor: HealthMonitorConfig = field(default_factory=HealthMonitorConfig)
+    validation: ValidationConfig = field(default_factory=ValidationConfig)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -221,14 +274,24 @@ class ConfigLoader:
         sched_raw = raw.get("scheduler", {})
         log_raw = raw.get("logging", {})
         dash_raw = raw.get("dashboard", {})
+        health_raw = raw.get("health_monitor", {})
+        validation_raw = raw.get("validation", {})
 
         entry_raw = ichi_raw.pop("entry_conditions", {})
         exit_raw = ichi_raw.pop("exit_conditions", {})
+        scoring_raw = ichi_raw.pop("signal_scoring", {})
 
         sl_raw = risk_raw.pop("stop_loss", {})
         tp_raw = risk_raw.pop("take_profit", {})
         be_raw = risk_raw.pop("break_even", {})
         ts_raw = risk_raw.pop("trailing_stop", {})
+
+        qc_raw = validation_raw.pop("quality_checks", {})
+        slm_raw = validation_raw.pop("strength_lot_multiplier", None)
+        validation_kwargs = dict(validation_raw)
+        validation_kwargs["quality_checks"] = QualityChecksConfig(**qc_raw)
+        if slm_raw is not None:
+            validation_kwargs["strength_lot_multiplier"] = slm_raw
 
         return Config(
             account=AccountConfig(**acc),
@@ -236,6 +299,7 @@ class ConfigLoader:
             ichimoku=IchimokuConfig(
                 entry_conditions=EntryConditions(**entry_raw),
                 exit_conditions=ExitConditions(**exit_raw),
+                signal_scoring=SignalScoringConfig(**scoring_raw),
                 **ichi_raw,
             ),
             pairs=raw.get("pairs", []),
@@ -253,6 +317,8 @@ class ConfigLoader:
             scheduler=SchedulerConfig(**sched_raw),
             logging=LoggingConfig(**log_raw),
             dashboard=DashboardConfig(**dash_raw),
+            health_monitor=HealthMonitorConfig(**health_raw),
+            validation=ValidationConfig(**validation_kwargs),
         )
 
     @staticmethod
@@ -349,4 +415,8 @@ class ConfigLoader:
         logger.info(f"  Session filter: {'ON' if cfg.session_filter.enabled else 'OFF'}")
         logger.info(f"  Dashboard: {'ON' if cfg.dashboard.enabled else 'OFF'} "
                      f"(port {cfg.dashboard.port})")
+        v = cfg.validation
+        logger.info(f"  Validation: adversarial={'ON' if v.adversarial_validation else 'OFF'}, "
+                     f"momentum={'ON' if v.momentum_scoring else 'OFF'}, "
+                     f"strength={'ON' if v.strength_classification else 'OFF'}")
         logger.info("=" * 60)

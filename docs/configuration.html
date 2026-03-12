@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configuration Reference — IchiBot v3</title>
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --surface: #1a1a2e;
+    --surface2: #16213e;
+    --border: #0f3460;
+    --accent: #00d4ff;
+    --accent2: #00ff88;
+    --text: #e0e0e0;
+    --text-muted: #888;
+    --red: #ff4444;
+    --orange: #ffaa00;
+    --code-bg: #0d1117;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7;
+    display: flex; min-height: 100vh;
+  }
+  nav {
+    width: 260px; min-height: 100vh; background: var(--surface);
+    border-right: 1px solid var(--border); padding: 24px 0;
+    position: fixed; overflow-y: auto;
+  }
+  nav .logo {
+    font-size: 18px; font-weight: 700; color: var(--accent);
+    padding: 0 24px 20px; border-bottom: 1px solid var(--border);
+    font-family: 'Consolas','Monaco',monospace;
+  }
+  nav .logo span { color: var(--text-muted); font-weight: 400; font-size: 12px; display: block; }
+  nav ul { list-style: none; margin-top: 16px; }
+  nav ul li a {
+    display: block; padding: 10px 24px; color: var(--text-muted);
+    text-decoration: none; font-size: 14px; transition: all 0.2s;
+    border-left: 3px solid transparent;
+  }
+  nav ul li a:hover { color: var(--text); background: var(--surface2); }
+  nav ul li a.active { color: var(--accent); border-left-color: var(--accent); background: var(--surface2); }
+  nav .section-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-muted); padding: 20px 24px 6px;
+  }
+  main { margin-left: 260px; flex: 1; padding: 48px 64px; max-width: 1000px; }
+  h1 { font-size: 32px; color: var(--accent); margin-bottom: 8px; }
+  .subtitle { color: var(--text-muted); font-size: 16px; margin-bottom: 40px; }
+  h2 { font-size: 22px; color: var(--accent); margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 16px; color: var(--accent2); margin: 24px 0 8px; }
+  p { margin-bottom: 14px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 8px 0 16px 24px; }
+  li { margin-bottom: 6px; font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+  th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--accent); font-weight: 600; background: var(--surface2); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  tr:hover td { background: var(--surface); }
+  code { font-family: 'Consolas','Monaco','Fira Code',monospace; background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; color: var(--accent2); }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 16px 0; font-size: 13px; line-height: 1.5; }
+  pre code { background: none; padding: 0; color: var(--text); }
+  .callout { background: var(--surface2); border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; padding: 16px 20px; margin: 16px 0; }
+  .callout.warn { border-left-color: var(--orange); }
+  .callout.danger { border-left-color: var(--red); }
+  .callout .callout-title { font-weight: 700; font-size: 13px; text-transform: uppercase; margin-bottom: 6px; }
+  .callout .callout-title.info { color: var(--accent); }
+  .callout .callout-title.warn { color: var(--orange); }
+  .callout .callout-title.danger { color: var(--red); }
+  .type { color: var(--orange); font-family: monospace; font-size: 12px; }
+  .default { color: var(--text-muted); font-family: monospace; font-size: 12px; }
+  .required { color: var(--red); font-weight: 600; font-size: 11px; }
+  @media (max-width: 900px) { nav { display: none; } main { margin-left: 0; padding: 24px; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">IchiBot v3<span>Documentation</span></div>
+  <div class="section-label">Overview</div>
+  <ul>
+    <li><a href="index.html">Home</a></li>
+    <li><a href="architecture.html">Architecture</a></li>
+  </ul>
+  <div class="section-label">Guides</div>
+  <ul>
+    <li><a href="tool_usage_guide.html">Tool &amp; CLI Usage</a></li>
+    <li><a href="deploy_guide.html">Deployment</a></li>
+  </ul>
+  <div class="section-label">Reference</div>
+  <ul>
+    <li><a href="configuration.html" class="active">Configuration</a></li>
+  </ul>
+</nav>
+
+<main>
+  <h1>Configuration Reference</h1>
+  <p class="subtitle">Every field documented with types, defaults, and validation rules</p>
+
+  <!-- ──────────────────── OVERVIEW ──────────────────── -->
+  <h2>Overview</h2>
+  <table>
+    <tr><th>System</th><th>File</th><th>Format</th><th>Loader</th></tr>
+    <tr><td>Signal Bot (v1)</td><td><code>config.yaml</code></td><td>YAML</td><td><code>os.path.expandvars</code> for <code>${ENV_VAR}</code> expansion</td></tr>
+    <tr><td>Trading Bot (v3)</td><td><code>config/strategy_config.json</code></td><td>JSON</td><td><code>ConfigLoader.load()</code> &rarr; typed dataclasses</td></tr>
+  </table>
+
+  <!-- ──────────────────── V3 CONFIG ──────────────────── -->
+  <h2>v3: strategy_config.json</h2>
+  <p>Parsed by <code>core/config_loader.py</code> into a <code>Config</code> dataclass with 14 nested config objects. Full validation on load.</p>
+
+  <!-- account -->
+  <h3 id="account">account</h3>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>login</code></td><td><span class="type">int</span></td><td><span class="default">0</span></td><td>MT5 account login number</td></tr>
+    <tr><td><code>password</code></td><td><span class="type">str</span></td><td><span class="default">""</span></td><td>MT5 account password</td></tr>
+    <tr><td><code>server</code></td><td><span class="type">str</span></td><td><span class="default">""</span></td><td>MT5 broker server name</td></tr>
+    <tr><td><code>demo_mode</code></td><td><span class="type">bool</span></td><td><span class="default">true</span></td><td>If true, refuses to connect to live (non-demo) accounts</td></tr>
+  </table>
+
+  <!-- goal -->
+  <h3 id="goal">goal</h3>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Validation</th><th>Description</th></tr>
+    <tr><td><code>target_profit_pct</code></td><td><span class="type">float</span></td><td><span class="default">10.0</span></td><td><span class="required">&gt; 0</span></td><td>Halt and close all when balance reaches this % profit</td></tr>
+    <tr><td><code>notify_on_goal</code></td><td><span class="type">bool</span></td><td><span class="default">true</span></td><td></td><td>Send notification when goal is reached</td></tr>
+  </table>
+
+  <!-- ichimoku -->
+  <h3 id="ichimoku">ichimoku</h3>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Validation</th><th>Description</th></tr>
+    <tr><td><code>tenkan_period</code></td><td><span class="type">int</span></td><td><span class="default">9</span></td><td rowspan="3"><span class="required">tenkan &lt; kijun &lt; senkou_b</span></td><td>Conversion line period</td></tr>
+    <tr><td><code>kijun_period</code></td><td><span class="type">int</span></td><td><span class="default">26</span></td><td>Base line period</td></tr>
+    <tr><td><code>senkou_b_period</code></td><td><span class="type">int</span></td><td><span class="default">52</span></td><td>Leading Span B period</td></tr>
+    <tr><td><code>displacement</code></td><td><span class="type">int</span></td><td><span class="default">26</span></td><td>Warn if != kijun</td><td>Cloud displacement (forward shift)</td></tr>
+    <tr><td><code>signal_mode</code></td><td><span class="type">str</span></td><td><span class="default">"tk_cross"</span></td><td><span class="required">enum</span></td><td>One of: <code>tk_cross</code>, <code>chikou_cross</code>, <code>kumo_breakout</code>, <code>full_confirm</code></td></tr>
+    <tr><td><code>cloud_min_thickness_pips</code></td><td><span class="type">float</span></td><td><span class="default">5.0</span></td><td></td><td>Minimum cloud thickness for <code>full_confirm</code> mode</td></tr>
+    <tr><td><code>use_virtual_tp</code></td><td><span class="type">bool</span></td><td><span class="default">false</span></td><td></td><td>Close position manually when price hits TP level</td></tr>
+  </table>
+
+  <h4>ichimoku.entry_conditions</h4>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>require_price_above_cloud</code></td><td><span class="type">bool</span></td><td><span class="default">true</span></td><td>BUY requires close &gt; cloud_top</td></tr>
+    <tr><td><code>require_tenkan_above_kijun</code></td><td><span class="type">bool</span></td><td><span class="default">true</span></td><td>BUY requires tenkan &gt; kijun</td></tr>
+    <tr><td><code>require_chikou_clear</code></td><td><span class="type">bool</span></td><td><span class="default">true</span></td><td>Chikou must be outside high-low range over <code>chikou_clear_lookback</code> bars</td></tr>
+    <tr><td><code>require_bullish_cloud</code></td><td><span class="type">bool</span></td><td><span class="default">true</span></td><td>BUY requires senkou_a &gt; senkou_b</td></tr>
+    <tr><td><code>require_future_cloud_bullish</code></td><td><span class="type">bool</span></td><td><span class="default">false</span></td><td>Require future cloud (projected +26) to be bullish</td></tr>
+    <tr><td><code>chikou_clear_lookback</code></td><td><span class="type">int</span></td><td><span class="default">5</span></td><td>Number of bars to check for chikou clearance high-low range</td></tr>
+  </table>
+
+  <h4>ichimoku.exit_conditions</h4>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>exit_on_tk_cross_against</code></td><td><span class="type">bool</span></td><td><span class="default">true</span></td><td>Close BUY if tenkan crosses below kijun (and vice versa)</td></tr>
+    <tr><td><code>exit_on_price_enter_cloud</code></td><td><span class="type">bool</span></td><td><span class="default">false</span></td><td>Close BUY if price drops into cloud</td></tr>
+    <tr><td><code>exit_on_chikou_cross_down</code></td><td><span class="type">bool</span></td><td><span class="default">false</span></td><td>Close BUY if chikou drops below reference price</td></tr>
+  </table>
+
+  <h4>ichimoku.signal_scoring</h4>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>enabled</code></td><td><span class="type">bool</span></td><td><span class="default">false</span></td><td>Enable 6-component signal scoring</td></tr>
+    <tr><td><code>min_score_threshold</code></td><td><span class="type">float</span></td><td><span class="default">0.5</span></td><td>Reject signals below this score (0-1 range)</td></tr>
+    <tr><td><code>scale_lot_by_score</code></td><td><span class="type">bool</span></td><td><span class="default">false</span></td><td>Scale lot size proportionally to signal score</td></tr>
+    <tr><td><code>weights</code></td><td><span class="type">dict</span></td><td><span class="default">see below</span></td><td>Per-component weights (must sum to ~1.0)</td></tr>
+  </table>
+  <p>Default weights:</p>
+  <pre><code>{
+  "tk_alignment": 0.15,
+  "price_vs_cloud": 0.20,
+  "chikou_clear": 0.20,
+  "cloud_direction": 0.15,
+  "cloud_thickness": 0.10,
+  "trend_filter": 0.20
+}</code></pre>
+
+  <!-- pairs & timeframes -->
+  <h3 id="pairs">pairs &amp; timeframes</h3>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Validation</th><th>Description</th></tr>
+    <tr><td><code>pairs</code></td><td><span class="type">list[str]</span></td><td><span class="default">[]</span></td><td><span class="required">not empty</span></td><td>Symbols to scan: <code>["EURUSD","GBPUSD",...]</code></td></tr>
+    <tr><td><code>timeframes.primary</code></td><td><span class="type">str</span></td><td><span class="default">"H4"</span></td><td></td><td>Primary signal timeframe</td></tr>
+    <tr><td><code>timeframes.confirmation</code></td><td><span class="type">str</span></td><td><span class="default">"D1"</span></td><td></td><td>Higher-TF for trend filter</td></tr>
+  </table>
+
+  <!-- session_filter -->
+  <h3 id="session">session_filter</h3>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>enabled</code></td><td><span class="type">bool</span></td><td><span class="default">true</span></td><td>Enable/disable session filtering</td></tr>
+    <tr><td><code>start_hour_utc</code></td><td><span class="type">int</span></td><td><span class="default">7</span></td><td>Trading session start (UTC hour)</td></tr>
+    <tr><td><code>end_hour_utc</code></td><td><span class="type">int</span></td><td><span class="default">20</span></td><td>Trading session end (UTC hour)</td></tr>
+    <tr><td><code>trade_friday_close</code></td><td><span class="type">bool</span></td><td><span class="default">false</span></td><td>Allow new trades after Friday 17:00 UTC</td></tr>
+  </table>
+
+  <!-- news_filter -->
+  <h3 id="news">news_filter</h3>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>enabled</code></td><td><span class="type">bool</span></td><td><span class="default">false</span></td><td>Enable news event blackout filtering</td></tr>
+    <tr><td><code>minutes_before</code></td><td><span class="type">int</span></td><td><span class="default">30</span></td><td>Blackout starts this many minutes before event</td></tr>
+    <tr><td><code>minutes_after</code></td><td><span class="type">int</span></td><td><span class="default">30</span></td><td>Blackout ends this many minutes after event</td></tr>
+    <tr><td><code>impact_levels</code></td><td><span class="type">list[str]</span></td><td><span class="default">["high"]</span></td><td>Only block for these impact levels</td></tr>
+    <tr><td><code>calendar_source</code></td><td><span class="type">str</span></td><td><span class="default">"static"</span></td><td>Data source (currently only <code>"static"</code> supported)</td></tr>
+    <tr><td><code>static_events_path</code></td><td><span class="type">str</span></td><td><span class="default">"data/news_events.json"</span></td><td>Path to static event calendar</td></tr>
+  </table>
+
+  <!-- risk_management -->
+  <h3 id="risk">risk_management</h3>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Validation</th><th>Description</th></tr>
+    <tr><td><code>risk_per_trade_pct</code></td><td><span class="type">float</span></td><td><span class="default">1.0</span></td><td><span class="required">(0, 5]</span></td><td>% of balance risked per trade</td></tr>
+    <tr><td><code>max_open_trades</code></td><td><span class="type">int</span></td><td><span class="default">3</span></td><td></td><td>Maximum concurrent open positions</td></tr>
+    <tr><td><code>max_daily_loss_pct</code></td><td><span class="type">float</span></td><td><span class="default">3.0</span></td><td></td><td>Halt for day when daily closed PnL exceeds this % loss</td></tr>
+    <tr><td><code>max_drawdown_pct</code></td><td><span class="type">float</span></td><td><span class="default">8.0</span></td><td></td><td>Emergency close all + halt when drawdown exceeds this %</td></tr>
+    <tr><td><code>lot_mode</code></td><td><span class="type">str</span></td><td><span class="default">"risk_pct"</span></td><td><span class="required">enum</span></td><td>One of: <code>risk_pct</code>, <code>fixed</code>, <code>compound</code></td></tr>
+    <tr><td><code>fixed_lot_size</code></td><td><span class="type">float</span></td><td><span class="default">0.01</span></td><td></td><td>Lot size when <code>lot_mode="fixed"</code></td></tr>
+  </table>
+
+  <h4>risk_management.stop_loss</h4>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Validation</th><th>Description</th></tr>
+    <tr><td><code>method</code></td><td><span class="type">str</span></td><td><span class="default">"kijun"</span></td><td><span class="required">enum</span></td><td><code>kijun</code>, <code>atr</code>, <code>cloud_edge</code>, <code>fixed_pips</code></td></tr>
+    <tr><td><code>fixed_pips</code></td><td><span class="type">float</span></td><td><span class="default">40.0</span></td><td></td><td>SL distance when method=fixed_pips</td></tr>
+    <tr><td><code>atr_period</code></td><td><span class="type">int</span></td><td><span class="default">14</span></td><td></td><td>ATR lookback period</td></tr>
+    <tr><td><code>atr_multiplier</code></td><td><span class="type">float</span></td><td><span class="default">1.5</span></td><td></td><td>SL = entry +/- ATR * multiplier</td></tr>
+    <tr><td><code>buffer_pips</code></td><td><span class="type">float</span></td><td><span class="default">5.0</span></td><td></td><td>Extra pips beyond SL anchor to prevent stop-hunting</td></tr>
+  </table>
+
+  <h4>risk_management.take_profit</h4>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Validation</th><th>Description</th></tr>
+    <tr><td><code>method</code></td><td><span class="type">str</span></td><td><span class="default">"ratio"</span></td><td><span class="required">enum</span></td><td><code>ratio</code>, <code>next_cloud</code>, <code>fixed_pips</code></td></tr>
+    <tr><td><code>rr_ratio</code></td><td><span class="type">float</span></td><td><span class="default">2.0</span></td><td><span class="required">&ge; 1.0</span></td><td>Risk:Reward ratio (TP = SL_distance * rr_ratio)</td></tr>
+    <tr><td><code>fixed_pips</code></td><td><span class="type">float</span></td><td><span class="default">80.0</span></td><td></td><td>TP distance when method=fixed_pips</td></tr>
+  </table>
+
+  <h4>risk_management.break_even</h4>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>enabled</code></td><td><span class="type">bool</span></td><td><span class="default">true</span></td><td>Enable break-even SL movement</td></tr>
+    <tr><td><code>trigger_pips</code></td><td><span class="type">float</span></td><td><span class="default">20.0</span></td><td>Move SL when profit reaches this many pips</td></tr>
+    <tr><td><code>lock_in_pips</code></td><td><span class="type">float</span></td><td><span class="default">2.0</span></td><td>New SL = entry +/- lock_in_pips (locks in small profit)</td></tr>
+  </table>
+
+  <h4>risk_management.trailing_stop</h4>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>enabled</code></td><td><span class="type">bool</span></td><td><span class="default">true</span></td><td>Enable trailing stop</td></tr>
+    <tr><td><code>method</code></td><td><span class="type">str</span></td><td><span class="default">"kijun"</span></td><td><code>kijun</code> (follow kijun-sen) or <code>fixed</code> (fixed distance)</td></tr>
+    <tr><td><code>fixed_trail_pips</code></td><td><span class="type">float</span></td><td><span class="default">20.0</span></td><td>Trail distance when method=fixed</td></tr>
+    <tr><td><code>trail_step_pips</code></td><td><span class="type">float</span></td><td><span class="default">5.0</span></td><td>Minimum improvement before updating SL (prevents API spam)</td></tr>
+  </table>
+
+  <!-- execution -->
+  <h3 id="execution">execution</h3>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>slippage_points</code></td><td><span class="type">int</span></td><td><span class="default">20</span></td><td>Max allowed slippage in points</td></tr>
+    <tr><td><code>magic_number</code></td><td><span class="type">int</span></td><td><span class="default">20260309</span></td><td>Unique ID to isolate this bot's orders from other EAs</td></tr>
+    <tr><td><code>order_comment</code></td><td><span class="type">str</span></td><td><span class="default">"IchiBot_v3"</span></td><td>Comment attached to all orders</td></tr>
+    <tr><td><code>retry_attempts</code></td><td><span class="type">int</span></td><td><span class="default">3</span></td><td>Number of order send retries on failure</td></tr>
+    <tr><td><code>retry_delay_ms</code></td><td><span class="type">int</span></td><td><span class="default">500</span></td><td>Delay between retries in milliseconds</td></tr>
+    <tr><td><code>use_market_orders</code></td><td><span class="type">bool</span></td><td><span class="default">true</span></td><td>Use market orders (vs limit orders)</td></tr>
+  </table>
+
+  <!-- scheduler -->
+  <h3 id="scheduler">scheduler</h3>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>bar_check_interval_sec</code></td><td><span class="type">int</span></td><td><span class="default">60</span></td><td>Main loop polling interval in seconds</td></tr>
+    <tr><td><code>use_ontrade_transaction</code></td><td><span class="type">bool</span></td><td><span class="default">true</span></td><td>Use MT5 trade transaction events (when available)</td></tr>
+  </table>
+
+  <!-- logging -->
+  <h3 id="logging">logging</h3>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>level</code></td><td><span class="type">str</span></td><td><span class="default">"INFO"</span></td><td>DEBUG, INFO, WARNING, ERROR</td></tr>
+    <tr><td><code>log_to_file</code></td><td><span class="type">bool</span></td><td><span class="default">true</span></td><td>Write to <code>logs/bot.log</code></td></tr>
+    <tr><td><code>log_dir</code></td><td><span class="type">str</span></td><td><span class="default">"logs"</span></td><td>Directory for all log/CSV files</td></tr>
+    <tr><td><code>max_file_mb</code></td><td><span class="type">int</span></td><td><span class="default">10</span></td><td>Max log file size before rotation</td></tr>
+    <tr><td><code>log_trades_csv</code></td><td><span class="type">bool</span></td><td><span class="default">true</span></td><td>Write closed trades to <code>trades.csv</code></td></tr>
+  </table>
+
+  <!-- dashboard -->
+  <h3 id="dashboard">dashboard</h3>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>enabled</code></td><td><span class="type">bool</span></td><td><span class="default">true</span></td><td>Start FastAPI dashboard on boot</td></tr>
+    <tr><td><code>host</code></td><td><span class="type">str</span></td><td><span class="default">"0.0.0.0"</span></td><td>Dashboard bind address</td></tr>
+    <tr><td><code>port</code></td><td><span class="type">int</span></td><td><span class="default">8000</span></td><td>Dashboard port</td></tr>
+    <tr><td><code>keep_alive_url</code></td><td><span class="type">str</span></td><td><span class="default">""</span></td><td>URL to ping for keep-alive (empty = disabled)</td></tr>
+    <tr><td><code>keep_alive_interval_sec</code></td><td><span class="type">int</span></td><td><span class="default">600</span></td><td>Seconds between keep-alive pings</td></tr>
+  </table>
+
+  <!-- health_monitor -->
+  <h3 id="health">health_monitor</h3>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>enabled</code></td><td><span class="type">bool</span></td><td><span class="default">true</span></td><td>Enable health monitoring</td></tr>
+    <tr><td><code>max_tick_gap_sec</code></td><td><span class="type">int</span></td><td><span class="default">300</span></td><td>Alert if no tick received for this many seconds</td></tr>
+    <tr><td><code>max_consecutive_errors</code></td><td><span class="type">int</span></td><td><span class="default">3</span></td><td>Alert after this many consecutive processing errors</td></tr>
+    <tr><td><code>alert_cooldown_sec</code></td><td><span class="type">int</span></td><td><span class="default">900</span></td><td>Minimum seconds between repeated alerts (prevents spam)</td></tr>
+    <tr><td><code>heartbeat_interval_sec</code></td><td><span class="type">int</span></td><td><span class="default">3600</span></td><td>Periodic "alive" signal interval</td></tr>
+  </table>
+
+  <!-- validation -->
+  <h3 id="validation">validation</h3>
+  <div class="callout">
+    <div class="callout-title info">All Disabled by Default</div>
+    Every validation feature is opt-in. The bot runs without any validation layers unless explicitly enabled.
+  </div>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>adversarial_validation</code></td><td><span class="type">bool</span></td><td><span class="default">false</span></td><td>Enable 3-critic adversarial validation (logical, contextual, structural)</td></tr>
+    <tr><td><code>min_rtr_score</code></td><td><span class="type">float</span></td><td><span class="default">0.6</span></td><td>Reject signals with RTR score below this threshold</td></tr>
+    <tr><td><code>momentum_scoring</code></td><td><span class="type">bool</span></td><td><span class="default">false</span></td><td>Calculate momentum score (RSI, ADX, EMA, ATR) for each signal</td></tr>
+    <tr><td><code>strength_classification</code></td><td><span class="type">bool</span></td><td><span class="default">false</span></td><td>Classify signals as STRONG/MODERATE/WEAK</td></tr>
+  </table>
+
+  <h4>validation.quality_checks</h4>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>max_slippage_pips</code></td><td><span class="type">float</span></td><td><span class="default">3.0</span></td><td>Max acceptable slippage in pips (post-trade quality check)</td></tr>
+    <tr><td><code>min_fill_ratio</code></td><td><span class="type">float</span></td><td><span class="default">0.95</span></td><td>Minimum acceptable fill ratio (filled/requested volume)</td></tr>
+    <tr><td><code>max_spread_pips</code></td><td><span class="type">float</span></td><td><span class="default">5.0</span></td><td>Max acceptable spread at execution time</td></tr>
+  </table>
+
+  <h4>validation.strength_lot_multiplier</h4>
+  <table>
+    <tr><th>Strength</th><th>Default Multiplier</th><th>Effect</th></tr>
+    <tr><td><code>STRONG</code></td><td><span class="default">1.0</span></td><td>Full lot size</td></tr>
+    <tr><td><code>MODERATE</code></td><td><span class="default">0.7</span></td><td>70% of calculated lot</td></tr>
+    <tr><td><code>WEAK</code></td><td><span class="default">0.4</span></td><td>40% of calculated lot</td></tr>
+  </table>
+
+  <!-- ──────────────────── VALIDATION RULES ──────────────────── -->
+  <h2>Validation Rules Summary</h2>
+  <p>Enforced by <code>ConfigLoader._validate()</code> at load time. The bot will not start if any rule is violated.</p>
+  <table>
+    <tr><th>Rule</th><th>Error Message</th></tr>
+    <tr><td><code>tenkan &lt; kijun &lt; senkou_b</code></td><td>Ichimoku periods must be strictly ascending</td></tr>
+    <tr><td><code>signal_mode</code> in valid set</td><td>Must be one of: tk_cross, chikou_cross, kumo_breakout, full_confirm</td></tr>
+    <tr><td><code>lot_mode</code> in valid set</td><td>Must be one of: risk_pct, fixed, compound</td></tr>
+    <tr><td><code>stop_loss.method</code> in valid set</td><td>Must be one of: kijun, atr, cloud_edge, fixed_pips</td></tr>
+    <tr><td><code>take_profit.method</code> in valid set</td><td>Must be one of: ratio, next_cloud, fixed_pips</td></tr>
+    <tr><td><code>0 &lt; risk_per_trade_pct &le; 5</code></td><td>Risk per trade out of range</td></tr>
+    <tr><td><code>rr_ratio &ge; 1.0</code></td><td>Risk:reward ratio too low</td></tr>
+    <tr><td><code>target_profit_pct &gt; 0</code></td><td>Target profit must be positive</td></tr>
+    <tr><td><code>pairs</code> not empty</td><td>Pairs list must not be empty</td></tr>
+  </table>
+
+  <!-- ──────────────────── V1 CONFIG ──────────────────── -->
+  <h2>v1: config.yaml</h2>
+
+  <p>The Signal Bot uses YAML configuration with <code>${ENV_VAR}</code> expansion.</p>
+
+  <pre><code>general:
+  log_level: INFO        # DEBUG | INFO | WARNING | ERROR
+  dry_run: true          # true = log only, no Discord messages
+
+ichimoku:
+  tenkan_period: 9
+  kijun_period: 26
+  senkou_b_period: 52
+  displacement: 26
+  chikou_shift: 26
+
+signals:
+  cooldown_minutes: 30   # per (pair, timeframe, signal_type)
+  cloud_filter: true     # TK crosses require price on correct side of cloud
+  strong_signal_only: false
+
+pairs:
+  - symbol: EURUSD
+    timeframes: [H1, H4]
+    enabled_signals:
+      - tk_cross         # maps to tk_cross_up + tk_cross_down
+      - kumo_breakout    # maps to kumo_breakout_up + kumo_breakout_down
+      - chikou_cross     # maps to chikou_cross_up + chikou_cross_down
+
+backtest:
+  from_date: "2024-01-01"
+  to_date:   "2024-12-31"
+  output_dir: "./backtest_results"
+
+discord:
+  webhook_url: ${DISCORD_WEBHOOK_URL}   # expanded from .env</code></pre>
+
+</main>
+</body>
+</html>

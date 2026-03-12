@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deployment Guide — IchiBot v3</title>
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --surface: #1a1a2e;
+    --surface2: #16213e;
+    --border: #0f3460;
+    --accent: #00d4ff;
+    --accent2: #00ff88;
+    --text: #e0e0e0;
+    --text-muted: #888;
+    --red: #ff4444;
+    --orange: #ffaa00;
+    --code-bg: #0d1117;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    display: flex;
+    min-height: 100vh;
+  }
+  nav {
+    width: 260px;
+    min-height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    position: fixed;
+    overflow-y: auto;
+  }
+  nav .logo {
+    font-size: 18px; font-weight: 700; color: var(--accent);
+    padding: 0 24px 20px; border-bottom: 1px solid var(--border);
+    font-family: 'Consolas', 'Monaco', monospace;
+  }
+  nav .logo span { color: var(--text-muted); font-weight: 400; font-size: 12px; display: block; }
+  nav ul { list-style: none; margin-top: 16px; }
+  nav ul li a {
+    display: block; padding: 10px 24px; color: var(--text-muted);
+    text-decoration: none; font-size: 14px; transition: all 0.2s;
+    border-left: 3px solid transparent;
+  }
+  nav ul li a:hover { color: var(--text); background: var(--surface2); }
+  nav ul li a.active { color: var(--accent); border-left-color: var(--accent); background: var(--surface2); }
+  nav .section-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-muted); padding: 20px 24px 6px;
+  }
+  main { margin-left: 260px; flex: 1; padding: 48px 64px; max-width: 960px; }
+  h1 { font-size: 32px; color: var(--accent); margin-bottom: 8px; }
+  .subtitle { color: var(--text-muted); font-size: 16px; margin-bottom: 40px; }
+  h2 { font-size: 22px; color: var(--accent); margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 16px; color: var(--accent2); margin: 24px 0 8px; }
+  p { margin-bottom: 14px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { margin: 8px 0 16px 24px; }
+  li { margin-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--accent); font-weight: 600; background: var(--surface2); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  tr:hover td { background: var(--surface); }
+  code { font-family: 'Consolas','Monaco','Fira Code',monospace; background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; color: var(--accent2); }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; overflow-x: auto; margin: 16px 0; font-size: 13px; line-height: 1.5; }
+  pre code { background: none; padding: 0; color: var(--text); }
+  .callout { background: var(--surface2); border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; padding: 16px 20px; margin: 16px 0; }
+  .callout.warn { border-left-color: var(--orange); }
+  .callout.danger { border-left-color: var(--red); }
+  .callout .callout-title { font-weight: 700; font-size: 13px; text-transform: uppercase; margin-bottom: 6px; }
+  .callout .callout-title.info { color: var(--accent); }
+  .callout .callout-title.warn { color: var(--orange); }
+  .callout .callout-title.danger { color: var(--red); }
+  .step-num { display: inline-flex; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--bg); font-weight: 700; font-size: 14px; align-items: center; justify-content: center; margin-right: 8px; }
+  @media (max-width: 900px) { nav { display: none; } main { margin-left: 0; padding: 24px; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">IchiBot v3<span>Documentation</span></div>
+  <div class="section-label">Overview</div>
+  <ul>
+    <li><a href="index.html">Home</a></li>
+    <li><a href="architecture.html">Architecture</a></li>
+  </ul>
+  <div class="section-label">Guides</div>
+  <ul>
+    <li><a href="tool_usage_guide.html">Tool &amp; CLI Usage</a></li>
+    <li><a href="deploy_guide.html" class="active">Deployment</a></li>
+  </ul>
+  <div class="section-label">Reference</div>
+  <ul>
+    <li><a href="configuration.html">Configuration</a></li>
+  </ul>
+</nav>
+
+<main>
+  <h1>Deployment Guide</h1>
+  <p class="subtitle">Local development, Render cloud, Docker, and MT5 on Linux</p>
+
+  <!-- ──────────────────── LOCAL DEV ──────────────────── -->
+  <h2 id="local">1. Local Development</h2>
+
+  <h3><span class="step-num">1</span> Environment Setup</h3>
+  <pre><code># Clone and enter
+cd /home/bfc/Desktop/Colpo_Groso_BFC
+
+# Bootstrap (installs apt deps + pip packages + creates venv)
+bash setup_env.sh
+
+# Or manually:
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt</code></pre>
+
+  <h3><span class="step-num">2</span> Secrets</h3>
+  <pre><code>cp .env.example .env</code></pre>
+  <p>Edit <code>.env</code> and set:</p>
+  <table>
+    <tr><th>Variable</th><th>Purpose</th><th>Required By</th></tr>
+    <tr><td><code>DISCORD_WEBHOOK_URL</code></td><td>Discord channel webhook for notifications</td><td>v1 Signal Bot</td></tr>
+  </table>
+  <p>Get a webhook URL from: Discord Server &rarr; Settings &rarr; Integrations &rarr; Webhooks &rarr; New Webhook &rarr; Copy URL.</p>
+
+  <h3><span class="step-num">3</span> Verify Installation</h3>
+  <pre><code>source venv/bin/activate
+pytest tests/ -v        # should show 375 tests, 373 passed, 2 skipped</code></pre>
+
+  <h3><span class="step-num">4</span> Run in Simulation Mode</h3>
+  <pre><code># Single cycle (verify pipeline works)
+python trade_bot.py --sim --once
+
+# Continuous simulation
+python trade_bot.py --sim
+
+# Dashboard available at http://localhost:8000
+# Health check at http://localhost:8000/api/health</code></pre>
+
+  <div class="callout">
+    <div class="callout-title info">Simulation Mode</div>
+    When <code>--sim</code> is passed (or MT5 is unavailable), <code>MT5Connector</code> uses <code>force_sim=True</code>.
+    It generates synthetic OHLCV data with a bullish trend in the last 80 bars to trigger signals.
+    All logic (Ichimoku, risk, verification, CSV logging) runs identically to production.
+  </div>
+
+  <!-- ──────────────────── RENDER ──────────────────── -->
+  <h2 id="render">2. Render Deployment</h2>
+
+  <p>The <code>dashboard/</code> directory contains a standalone FastAPI dashboard deployable to Render's free tier.</p>
+
+  <h3><span class="step-num">1</span> Render Configuration</h3>
+
+  <p>File: <code>dashboard/render.yaml</code></p>
+  <pre><code>services:
+  - type: web
+    name: ichibot-dashboard
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DASHBOARD_SECRET
+        sync: false
+    plan: free</code></pre>
+
+  <table>
+    <tr><th>Setting</th><th>Value</th></tr>
+    <tr><td>Build command</td><td><code>pip install -r requirements.txt</code></td></tr>
+    <tr><td>Start command</td><td><code>uvicorn app:app --host 0.0.0.0 --port $PORT</code></td></tr>
+    <tr><td>Health check path</td><td><code>/api/health</code></td></tr>
+    <tr><td>Dependencies</td><td><code>fastapi>=0.110.0</code>, <code>uvicorn[standard]>=0.27.0</code></td></tr>
+    <tr><td>Plan</td><td>Free (spins down after 15 min inactivity)</td></tr>
+  </table>
+
+  <h3><span class="step-num">2</span> Environment Variables on Render</h3>
+  <table>
+    <tr><th>Variable</th><th>Purpose</th><th>Required</th></tr>
+    <tr><td><code>DASHBOARD_SECRET</code></td><td>Bearer token for <code>POST /api/state</code> (push from bot to dashboard)</td><td>Yes (if using state push)</td></tr>
+    <tr><td><code>PORT</code></td><td>Port override (Render sets this automatically)</td><td>Auto</td></tr>
+  </table>
+
+  <h3><span class="step-num">3</span> Keep-Alive Configuration</h3>
+  <p>Render free tier spins down after 15 minutes of inactivity. The bot includes a built-in keep-alive that pings the dashboard periodically.</p>
+
+  <p>In <code>config/strategy_config.json</code>:</p>
+  <pre><code>{
+  "dashboard": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 8000,
+    "keep_alive_url": "https://your-app.onrender.com",
+    "keep_alive_interval_sec": 600
+  }
+}</code></pre>
+  <p>The <code>KeepAlive</code> thread (<code>utils/keep_alive.py</code>) pings <code>{keep_alive_url}/api/health</code> every <code>keep_alive_interval_sec</code> seconds. Set the URL to your Render deployment URL.</p>
+
+  <h3><span class="step-num">4</span> Remote State Push</h3>
+  <p>When the bot runs on a different server (e.g., a Windows VPS with MT5) than the dashboard (Render), use state push:</p>
+  <pre><code>python trade_bot.py \
+  --dashboard-url https://your-app.onrender.com \
+  --dashboard-secret your-secret-token</code></pre>
+  <p>The <code>StatePusher</code> thread periodically POSTs the bot's full state snapshot to <code>/api/state</code> with Bearer auth.</p>
+
+  <h3><span class="step-num">5</span> Verify Deployment</h3>
+  <pre><code>python utils/verify_deploy.py --url https://your-app.onrender.com</code></pre>
+  <p>Runs three checks:</p>
+  <ol>
+    <li><strong>Health check</strong> &mdash; <code>GET /api/health</code>, expects <code>{"status": "ok"}</code></li>
+    <li><strong>Screenshot capture</strong> &mdash; headless Firefox, saves to <code>logs/dashboard_screenshot.png</code></li>
+    <li><strong>Image validation</strong> &mdash; verifies screenshot has real content (not blank)</li>
+  </ol>
+
+  <!-- ──────────────────── DOCKER ──────────────────── -->
+  <h2 id="docker">3. Docker</h2>
+
+  <p>A minimal Dockerfile is provided for the standalone dashboard:</p>
+  <p>File: <code>dashboard/Dockerfile</code></p>
+  <pre><code>FROM python:3.10-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY app.py .
+EXPOSE 8000
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]</code></pre>
+
+  <pre><code># Build and run
+cd dashboard/
+docker build -t ichibot-dashboard .
+docker run -d -p 8000:8000 \
+  -e DASHBOARD_SECRET=your-secret \
+  ichibot-dashboard</code></pre>
+
+  <div class="callout warn">
+    <div class="callout-title warn">Note</div>
+    The Docker image contains only the standalone dashboard (<code>dashboard/app.py</code>).
+    The full trading bot requires MT5 and is not containerized &mdash; run it natively on a
+    Windows machine or via Wine on Linux (see below).
+  </div>
+
+  <!-- ──────────────────── MT5 LINUX ──────────────────── -->
+  <h2 id="mt5-linux">4. MT5 on Linux (Wine Bridge)</h2>
+
+  <p>The <code>mt5linux</code> library communicates with a Windows MT5 terminal running inside Wine via RPyC.</p>
+
+  <h3><span class="step-num">1</span> One-Time Wine Setup</h3>
+  <pre><code>bash setup_mt5_wine.sh</code></pre>
+  <p>This installs Wine, .NET Framework, and the MT5 terminal into a Wine prefix.</p>
+
+  <h3><span class="step-num">2</span> Start the Bridge</h3>
+  <pre><code># Terminal 1 — keep running
+python3 start_mt5_bridge.py
+# Listens on localhost:18812</code></pre>
+
+  <h3><span class="step-num">3</span> Run the Bot</h3>
+  <pre><code># Terminal 2
+source venv/bin/activate
+python trade_bot.py    # connects to MT5 via bridge</code></pre>
+
+  <div class="callout">
+    <div class="callout-title info">Import Chain</div>
+    <code>MetaTrader5</code> (native, Windows) &rarr; <code>mt5linux</code> (Wine/RPyC bridge) &rarr; <code>MT5_AVAILABLE=False</code> (simulation fallback).
+    The bot gracefully degrades at each step.
+  </div>
+
+  <!-- ──────────────────── SPLIT DEPLOYMENT ──────────────────── -->
+  <h2 id="split">5. Split Deployment Architecture</h2>
+
+  <p>The recommended production setup separates the bot from the dashboard:</p>
+
+  <table>
+    <tr><th>Component</th><th>Where</th><th>Why</th></tr>
+    <tr><td>Trading Bot (<code>trade_bot.py</code>)</td><td>Windows VPS with MT5</td><td>Requires native MT5 terminal</td></tr>
+    <tr><td>Dashboard (<code>dashboard/app.py</code>)</td><td>Render (free tier)</td><td>Web-accessible monitoring</td></tr>
+  </table>
+
+  <p>The bot pushes state to the dashboard via <code>StatePusher</code>:</p>
+  <pre><code># On the Windows VPS:
+python trade_bot.py \
+  --dashboard-url https://ichibot-dashboard.onrender.com \
+  --dashboard-secret &lt;DASHBOARD_SECRET from Render env&gt;</code></pre>
+
+  <!-- ──────────────────── ENDPOINTS ──────────────────── -->
+  <h2 id="endpoints">6. Dashboard API Endpoints</h2>
+
+  <table>
+    <tr><th>Method</th><th>Path</th><th>Auth</th><th>Description</th></tr>
+    <tr><td><code>GET</code></td><td><code>/</code></td><td>None</td><td>HTML dashboard UI</td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/health</code></td><td>None</td><td>JSON health check: <code>{"status": "ok", ...}</code></td></tr>
+    <tr><td><code>POST</code></td><td><code>/api/state</code></td><td>Bearer</td><td>Receive bot state snapshot (from StatePusher)</td></tr>
+    <tr><td><code>GET</code></td><td><code>/api/validation/metrics</code></td><td>None</td><td>Adversarial validation counters (when enabled)</td></tr>
+    <tr><td><code>WS</code></td><td><code>/ws</code></td><td>None</td><td>WebSocket live data stream (every 2s)</td></tr>
+  </table>
+
+  <!-- ──────────────────── LOGS ──────────────────── -->
+  <h2 id="logs">7. Log Files</h2>
+
+  <p>All logs are written to the <code>logs/</code> directory (auto-created on first run):</p>
+
+  <table>
+    <tr><th>File</th><th>Written By</th><th>Content</th></tr>
+    <tr><td><code>logs/bot.log</code></td><td>Loguru</td><td>Rotating application log (max 10 MB per file)</td></tr>
+    <tr><td><code>logs/trades.csv</code></td><td><code>TradeLogger</code></td><td>All closed trades with PnL, exit reason, verification</td></tr>
+    <tr><td><code>logs/failed_actions.csv</code></td><td><code>FailedActionLogger</code></td><td>Failed trades only &mdash; 28 columns for post-mortem analysis</td></tr>
+    <tr><td><code>logs/dashboard_screenshot.png</code></td><td><code>verify_deploy.py</code></td><td>Headless screenshot for deployment verification</td></tr>
+  </table>
+
+  <div class="callout warn">
+    <div class="callout-title warn">Thread Safety</div>
+    <code>failed_actions.csv</code> uses <code>filelock</code> for thread-safe writes. <code>BotState</code> uses
+    <code>threading.Lock</code> for all reads/writes since the dashboard accesses state from a different thread.
+  </div>
+
+  <!-- ──────────────────── TROUBLESHOOTING ──────────────────── -->
+  <h2 id="troubleshooting">8. Troubleshooting</h2>
+
+  <table>
+    <tr><th>Issue</th><th>Cause</th><th>Fix</th></tr>
+    <tr>
+      <td>Dashboard returns 502 on Render</td>
+      <td>Service spun down (free tier)</td>
+      <td>Set <code>keep_alive_url</code> in config. First request after spin-down takes ~30s.</td>
+    </tr>
+    <tr>
+      <td>MT5 connection refused on Linux</td>
+      <td>Bridge not running or Wine MT5 crashed</td>
+      <td>Restart <code>start_mt5_bridge.py</code>. Check Wine prefix with <code>wine64 --version</code>.</td>
+    </tr>
+    <tr>
+      <td>No signals in sim mode</td>
+      <td>Session filter blocking (UTC hours)</td>
+      <td>Set <code>session_filter.enabled: false</code> or run during 07-20 UTC.</td>
+    </tr>
+    <tr>
+      <td><code>verify_deploy.py</code> screenshot fails</td>
+      <td>Firefox snap can't write to /tmp</td>
+      <td>Script auto-detects snap and writes to <code>~/snap/firefox/common/</code>.</td>
+    </tr>
+    <tr>
+      <td>Port 8000 already in use</td>
+      <td>Another dashboard instance running</td>
+      <td>Change <code>dashboard.port</code> in <code>strategy_config.json</code> or kill the process.</td>
+    </tr>
+    <tr>
+      <td><code>config validation failed</code></td>
+      <td>Invalid JSON config values</td>
+      <td>Check <code>ConfigLoader._validate()</code> rules: periods ascending, risk &le; 5%, RR &ge; 1.0.</td>
+    </tr>
+  </table>
+
+</main>
+</body>
+</html>
